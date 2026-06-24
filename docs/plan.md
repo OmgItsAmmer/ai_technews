@@ -1,6 +1,6 @@
 # AI/Tech News Platform — Architecture 1 Build Plan
 
-> Simple synchronous pipeline · Python + Jinja2 · Fly.io · Neon PostgreSQL · Redis · Celery
+> Simple synchronous pipeline · Python + Jinja2 · Fly.io · Neon PostgreSQL · Redis · External cron
 
 ---
 
@@ -12,8 +12,9 @@
 | Web framework | Django 5.x |
 | Templates | Jinja2 (via `django-jinja`) |
 | Database | Neon PostgreSQL (serverless) |
-| Cache / dedup | Redis (Upstash free tier recommended) |
-| Task scheduler | Celery + Celery Beat |
+| Cache / dedup | Redis — local Docker (dev) · co-located in Fly app (prod) |
+| Task queue | Celery (broker = Redis) |
+| Task scheduler | External cron (GitHub Actions, UptimeRobot, or cron-as-a-service) → HTTP trigger every 45 min |
 | RSS parsing | `feedparser` |
 | HTTP client | `httpx` |
 | HTML parsing | `BeautifulSoup4` |
@@ -46,10 +47,68 @@ ainews/
 ├── static/
 ├── manage.py
 ├── requirements.txt
+├── docker-compose.yml       — local Redis for development only
 ├── Dockerfile
 ├── fly.toml
 └── .env.example
 ```
+
+---
+
+## Redis & Scheduling Architecture
+
+Dev and production run **in parallel** with separate Redis instances. They never share state — local dedup/cache stays local; production dedup/cache stays on Fly.
+
+### Redis — two environments, both active
+
+| Environment | Redis location | `REDIS_URL` | Purpose |
+|---|---|---|---|
+| **Development** | Local Docker container (`docker compose up -d`) | `redis://localhost:6379/0` | Celery broker + URL dedup while coding locally |
+| **Production (Fly.io)** | Redis co-located inside the backend Fly app (same machine as gunicorn) | `redis://127.0.0.1:6379/0` | Celery broker + URL dedup on the deployed app |
+
+**Development setup**
+
+```bash
+docker compose up -d    # starts redis:7-alpine on localhost:6379
+```
+
+`.env` for local dev points at Docker Redis. Your Neon `DATABASE_URL` can still target a dev branch or shared Neon project — only Redis is fully local.
+
+**Production setup**
+
+- Redis runs as a sidecar process inside the Fly backend image (e.g. `supervisord` managing `redis-server` + `gunicorn`, or a `redis` process defined alongside `web` in `fly.toml` on the same machine).
+- No Upstash or external Redis service — keeps cost at zero and avoids a second billable dependency.
+- `REDIS_URL` is set to `redis://127.0.0.1:6379/0` via Fly `[env]` or secrets; Django/Celery connect over loopback.
+
+### Scheduling — external cron wakes Fly, no Celery Beat
+
+Fly.io machines on the free/low tier **auto-stop when idle**. Celery Beat inside a sleeping machine never fires. Instead:
+
+1. Expose a protected HTTP endpoint on the Django app, e.g. `POST /internal/trigger-fetch/`.
+2. Guard it with a shared secret header (`X-Cron-Secret` / `CRON_SECRET` env var) so random visitors cannot trigger fetches.
+3. Configure a **free external cron** to `POST` that URL **every 45 minutes**:
+   - **GitHub Actions** — `schedule: '*/45 * * * *'` workflow that `curl`s the endpoint
+   - **UptimeRobot** — monitor hitting the endpoint on an interval (or a dedicated heartbeat monitor)
+   - **cron-job.org / EasyCron** — any free cron-as-a-service that supports HTTP POST
+4. Fly receives the inbound request → **wakes the sleeping machine** → Django validates the secret → dispatches `fetch_all_sources` (Celery) or runs the pipeline → machine goes back to sleep after inactivity.
+
+```
+External cron (every 45 min)
+        │
+        ▼ POST /internal/trigger-fetch/
+Fly.io web machine (wakes from sleep)
+        │
+        ▼
+Django validates CRON_SECRET
+        │
+        ▼
+fetch_all_sources → Celery tasks → Redis dedup → Neon posts
+        │
+        ▼
+Machine auto-stops after idle timeout
+```
+
+**Do not use Celery Beat in production.** Beat requires a process that stays awake 24/7, which defeats Fly auto-stop savings. Local dev can trigger fetches manually (`curl` the endpoint, Django shell, or `fetch_all_sources.delay()`) — no Beat needed locally either.
 
 ---
 
@@ -86,23 +145,27 @@ One row per article. Fields needed: foreign key to Source (nullable — manual a
 
 ## Phase 0 — Project Bootstrap
 
-**Goal:** A deployable, empty Django project connected to Neon and Redis with Celery running. No business logic yet.
+**Goal:** A deployable Django project connected to Neon and Redis (local Docker in dev, co-located on Fly in prod) with Celery configured. No business logic yet.
 
 ### What to do
 
 - Create a new Django project skeleton using `django-admin startproject`
 - Set up three settings files: `base.py` for shared settings, `development.py` for local, `production.py` for Fly.io
 - Configure the database connection to read `DATABASE_URL` from environment (Neon gives you this)
-- Configure Redis connection to read `REDIS_URL` from environment
+- Configure Redis connection to read `REDIS_URL` from environment:
+  - **Dev:** `redis://localhost:6379/0` (Docker Compose)
+  - **Prod:** `redis://127.0.0.1:6379/0` (co-located Redis in the Fly app)
+- Write `docker-compose.yml` with a single `redis:7-alpine` service on port 6379 for local development
 - Configure Jinja2 as the template backend via `django-jinja`
-- Set up Celery to use Redis as both the broker and result backend
+- Set up Celery to use Redis as both the broker and result backend (**no Celery Beat**)
 - Configure WhiteNoise for serving static files without a CDN
-- Write a `Dockerfile` — Python 3.12 slim base, install system deps (`libpq-dev`, `gcc`), install Python deps, run `collectstatic`, expose port 8000, start gunicorn
-- Write `fly.toml` — define two processes: `web` (gunicorn) and `worker` (celery with `-B` flag so beat runs in the same process as the worker)
-- Set all secrets on Fly: `DATABASE_URL`, `REDIS_URL`, `OPENAI_API_KEY`, `SECRET_KEY`, `ALLOWED_HOSTS`
-- Deploy and confirm both processes start without errors
+- Write a `Dockerfile` — Python 3.12 slim base, install system deps (`libpq-dev`, `gcc`, `redis-server`), install Python deps, run `collectstatic`, expose port 8000; use `supervisord` (or equivalent) to run **redis-server + gunicorn + celery worker** in the same container on Fly
+- Write `fly.toml` — single `web` process (no separate worker machine; Celery worker runs inside the same Fly app alongside Redis)
+- Set Fly secrets: `DATABASE_URL`, `OPENAI_API_KEY`, `SECRET_KEY`, `ALLOWED_HOSTS`, `CRON_SECRET`
+- Set Fly `[env]`: `REDIS_URL=redis://127.0.0.1:6379/0` (loopback to co-located Redis)
+- Deploy and confirm the web process starts, Redis is reachable on loopback, and Celery worker connects
 
-**Exit criteria:** Django admin loads at your Fly URL. Celery worker logs show it connected to Redis successfully.
+**Exit criteria:** Django admin loads at your Fly URL. `redis-cli -h 127.0.0.1 ping` works inside the Fly machine. Celery worker logs show it connected to local Redis. `docker compose up -d` + local `manage.py runserver` connects to Docker Redis on the dev machine.
 
 ---
 
@@ -166,12 +229,40 @@ This module has four sub-components that you build in this order:
 - Add retry logic: if a fetch fails (network error, timeout), retry up to 3 times with a 5-minute delay
 - Log how many new posts were saved per source
 
-#### 2e — Celery Beat schedule
+#### 2e — HTTP trigger endpoint (replaces Celery Beat)
 
-- Configure Celery Beat in settings to run `fetch_all_sources` every 4 hours via a crontab schedule
-- Since the worker is started with `-B`, beat runs alongside the worker in the same process on Fly.io — no separate process needed
+- Add a view at `POST /internal/trigger-fetch/` (not linked in public UI)
+- Validate `X-Cron-Secret` header against `CRON_SECRET` env var; return `403` if missing or wrong
+- On success, dispatch `fetch_all_sources.delay()` and return `202 Accepted` with a JSON body (`{"status": "dispatched"}`)
+- Keep the endpoint fast — it only enqueues work; the Celery worker on the same machine processes tasks after Fly wakes up
+- **Do not configure `CELERY_BEAT_SCHEDULE`** — scheduling is external
 
-**Exit criteria:** After starting the worker, wait 4 hours (or trigger manually via Django shell). New `Post` rows appear in the database with `status=pending` and populated raw content.
+#### 2f — External cron (every 45 minutes)
+
+- Set up one free external scheduler to `POST` the trigger endpoint every **45 minutes**:
+  - **GitHub Actions** (recommended if repo is on GitHub):
+
+    ```yaml
+    # .github/workflows/trigger-fetch.yml
+    on:
+      schedule:
+        - cron: '*/45 * * * *'
+    jobs:
+      trigger:
+        runs-on: ubuntu-latest
+        steps:
+          - run: |
+              curl -sf -X POST \
+                -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+                https://your-app.fly.dev/internal/trigger-fetch/
+    ```
+
+  - **UptimeRobot** — create an HTTP monitor pointed at the endpoint (custom interval if supported, or combine with a cron service)
+  - **cron-job.org / EasyCron** — free tier HTTP cron with 45-minute interval
+- Store `CRON_SECRET` in GitHub Actions secrets and Fly secrets (same value in both places)
+- Result: Fly sees the inbound request every 45 min → wakes the sleeping machine → fetch runs → machine sleeps again when idle
+
+**Exit criteria:** Hitting the trigger endpoint manually (with correct secret) creates new `Post` rows with `status=pending`. After external cron is configured, Fly logs show wake → fetch → sleep cycles every ~45 minutes.
 
 ---
 
@@ -258,41 +349,69 @@ This module has four sub-components that you build in this order:
 
 ## Phase 6 — Deployment on Fly.io
 
-**Goal:** Everything running in production on Fly.io with environment properly configured.
+**Goal:** Production on Fly.io with co-located Redis, external cron scheduling, and dev/prod Redis running independently.
 
 ### What to do
 
-#### Dockerfile
+#### Local development (runs alongside production — separate Redis)
+
+```bash
+docker compose up -d          # local Redis on :6379
+cp .env.example .env          # REDIS_URL=redis://localhost:6379/0
+python manage.py runserver
+celery -A config worker -l info   # optional: process tasks locally
+```
+
+Dev and prod do not share Redis or dedup state. You can develop locally while production cron keeps waking the Fly app on its own schedule.
+
+#### Dockerfile (production image)
 - Use `python:3.12-slim` as base
-- Install system dependencies: `libpq-dev` (for psycopg2), `gcc`, `curl`
+- Install system dependencies: `libpq-dev`, `gcc`, `curl`, `redis-server`, `supervisor`
 - Copy and install Python requirements
 - Run `collectstatic` during build so static files are baked in
-- Set the default command to gunicorn on port 8000
+- Configure `supervisord` to manage three programs in one container:
+  1. `redis-server` (bind `127.0.0.1:6379`)
+  2. `gunicorn` on port 8000
+  3. `celery -A config worker` (concurrency 2, **no `-B` beat flag**)
 
 #### fly.toml
-- Define two named processes under `[processes]`: `web` runs gunicorn, `worker` runs celery with the `-B` beat flag and concurrency of 2
+- Single `web` process running supervisord (Redis + gunicorn + Celery worker in one machine)
 - Configure the `web` service to accept HTTP on port 80 and HTTPS on port 443
-- Set memory to 512MB per machine — enough for this workload
+- Enable `auto_stop_machines` and `auto_start_machines` so the machine sleeps when idle and wakes on cron HTTP hits
+- Set memory to 512MB per machine
 - Set `DJANGO_SETTINGS_MODULE` to production settings in `[env]`
+- Set `REDIS_URL=redis://127.0.0.1:6379/0` in `[env]` (not a secret — loopback only)
 
 #### Fly secrets
-- Set all secrets via `fly secrets set`: `DATABASE_URL` (from Neon dashboard), `REDIS_URL` (from Upstash dashboard), `OPENAI_API_KEY`, `SECRET_KEY`, `ALLOWED_HOSTS`
-- Never commit these to the repo — they live only in Fly's secret store
+- Set via `fly secrets set`:
+  - `DATABASE_URL` — Neon pooled connection string
+  - `OPENAI_API_KEY`
+  - `SECRET_KEY`
+  - `ALLOWED_HOSTS`
+  - `CRON_SECRET` — shared with GitHub Actions / external cron provider
+- **Do not set `REDIS_URL` as a Fly secret** — use `[env]` loopback default above
+- Never commit secrets to the repo
+
+#### External cron setup (after first deploy)
+- Add `CRON_SECRET` to GitHub Actions repository secrets (or your cron provider's vault)
+- Deploy the `.github/workflows/trigger-fetch.yml` workflow (45-minute schedule)
+- Confirm first cron run wakes the machine: `fly logs` should show an HTTP `POST /internal/trigger-fetch/` followed by fetch task logs
+- Optionally add UptimeRobot as a backup monitor on the same endpoint
 
 #### After first deploy
-- SSH into the web machine and run database migrations
+- SSH into the Fly machine and run database migrations
 - Create a Django superuser for admin access
-- Run the `seed_sources` management command to populate all 19 sources (for background fetch)
-- Test the add-news form: paste a URL, confirm the warning popup works when tags are missing, publish a post
-- Trigger a manual background fetch from the Django shell to confirm the full pipeline works end-to-end
-- Check Fly logs to confirm the Celery worker connected to Redis and the beat scheduler started
+- Run the `seed_sources` management command to populate all 19 sources
+- Test the add-news form end-to-end
+- Manually `curl` the trigger endpoint to confirm fetch pipeline works before relying on cron
 
 #### Ongoing
-- Every code change: `fly deploy` — Fly does a rolling restart with zero downtime
-- Check `fly logs` if anything breaks
-- Use `fly ssh console` for any ad-hoc management commands
+- Every code change: `fly deploy`
+- Check `fly logs` after deploy and after cron fires
+- Use `fly ssh console` for ad-hoc management commands
+- Local dev continues on Docker Redis — unaffected by production deploys
 
-**Exit criteria:** Public feed live at `https://your-app.fly.dev`. Admin add-news form accessible at `/admin`. Celery worker logs show scheduled background fetches running every 4 hours.
+**Exit criteria:** Public feed live at `https://your-app.fly.dev`. External cron hits the trigger endpoint every 45 minutes. Fly logs show wake → fetch → idle-stop cycles. Local `docker compose` Redis works independently for development.
 
 ---
 
@@ -300,13 +419,13 @@ This module has four sub-components that you build in this order:
 
 | Phase | Module | What it delivers |
 |---|---|---|
-| 0 | Bootstrap | Deployable Django skeleton on Fly.io connected to Neon + Redis |
+| 0 | Bootstrap | Django on Fly.io + Neon; Docker Redis (dev) + co-located Redis (prod) |
 | 1 | Sources | 19 sources seeded for background fetch (not admin UI) |
-| 2 | Fetcher | Scheduled Celery task scrapes RSS + HTML, deduplicates via Redis, saves raw posts |
+| 2 | Fetcher | Celery fetch pipeline + HTTP trigger; external cron every 45 min wakes Fly |
 | 3 | LLM Extractor | GPT-4o mini validates news, extracts title/author/date/summary/tags, flags missing fields |
 | 4 | Admin Add News | Primary admin UI: paste URL or text → LLM preview → warning popup for missing fields → publish |
 | 5 | Frontend | Public Jinja2 feed with 10-tag filtering, search, pagination, and read-through links |
-| 6 | Deployment | Production live on Fly.io with secrets, migrations, and sources seeded |
+| 6 | Deployment | Fly.io with co-located Redis, external cron, dev Docker Redis in parallel |
 
 ---
 
@@ -328,8 +447,9 @@ Build the `Post` model and the add-news admin UI first — that is the core prod
 - **Warning popup, not silent defaults.** When the LLM cannot determine a field (especially tags), show a popup with editable inputs rather than saving incomplete data.
 - **GPT-4o mini for extraction.** Fast and cheap. Good enough for structured JSON extraction and news validation. Upgrade to `gpt-4o` only if quality is poor on edge cases.
 - **Synchronous tasks only.** No async, no threading inside tasks. Easier to debug when something breaks.
-- **One worker process with beat.** Celery's `-B` flag runs the scheduler inside the worker. Saves a Fly machine and simplifies the setup.
-- **Redis as dedup only.** Redis tracks seen URL hashes for the background fetcher. No page caching in Architecture 1.
+- **External cron, not Celery Beat.** Fly machines auto-stop when idle; Beat would never fire. A free external cron POSTs every 45 minutes to wake the machine and trigger fetches.
+- **Two Redis instances, both always available.** Dev uses Docker Redis on `localhost`; production uses Redis co-located inside the Fly backend app on `127.0.0.1`. They run simultaneously but never share data.
+- **Redis as dedup + Celery broker only.** No page caching in Architecture 1. No Upstash or paid external Redis.
 - **newspaper3k first, readability fallback.** newspaper3k handles most well-structured articles. readability-lxml handles more edge cases.
 - **Neon free tier is sufficient for MVP.** Neon auto-pauses the database when idle and resumes on first query. Adds ~500ms cold start latency which is acceptable for a low-traffic MVP.
 - **No full-article storage beyond raw_content.** You store the scraped/pasted text for LLM processing and debugging, but never display it publicly. The "Read Full Article" button always sends users to the original source.

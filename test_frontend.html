@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapid News - Local Test</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="apps/frontend/static/frontend/css/main.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="#" class="logo">Rapid News</a>
+        </div>
+        <div class="nav-center">
+            <div class="nav-links">
+                <a href="#" class="active" onclick="switchTab('feed', event)">Feed</a>
+                <a href="#" onclick="switchTab('saved', event)">Saved</a>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button id="copy-btn" class="icon-btn" onclick="copyToken()">
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy session
+            </button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div id="controls-section">
+            <div class="controls-row">
+                <div class="search-wrap">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                    <input type="text" id="search-in" name="q" placeholder="Search articles..." value="" oninput="applyFilters()">
+                </div>
+                <div class="sort-wrap">
+                    <button id="sort-btn" class="sort-btn" onclick="toggleSortMenu(event)" aria-label="Sort options">
+                        <i class="ti ti-arrows-sort" aria-hidden="true"></i>
+                    </button>
+                    <div id="sort-menu" class="sort-menu">
+                        <button class="active" onclick="selectSort('newest')">Newest first</button>
+                        <button class="" onclick="selectSort('oldest')">Oldest first</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tag-row" id="tag-row">
+                <span class="tag-chip active" onclick="setTag(this, 'all')">All</span>
+                <span class="tag-chip" onclick="setTag(this, 'GPT-4o')">GPT-4o</span>
+                <span class="tag-chip" onclick="setTag(this, 'Gemini')">Gemini</span>
+                <span class="tag-chip" onclick="setTag(this, 'API')">API</span>
+            </div>
+        </div>
+
+        <div id="saved-header" style="display: none; margin-bottom: 24px;">
+            <h2 style="font-family: var(--font-display); font-size: 32px; letter-spacing: 0.05em; color: var(--text);">Saved Articles</h2>
+            <p style="color: var(--text-muted); font-size: 15px;">Your private, portable library.</p>
+        </div>
+
+        <div class="grid" id="grid">
+            <!-- Mock Card 1 -->
+            <div class="card"
+                 data-id="1"
+                 data-tags="GPT-4o,API,OpenAI"
+                 data-date="2026-06-18">
+              <div class="card-top">
+                <h3 class="card-title">GPT-4o mini system card and API access released to all tiers</h3>
+                <button class="save-btn" 
+                        data-id="1"
+                        onclick="toggleSave(this, '1')"
+                        aria-label="Save article">
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="card-summary-wrap">
+                <p class="card-summary">OpenAI releases full safety evaluation and API access for GPT-4o mini, targeting developers who need low-latency responses at reduced cost. It aims to replace older models by being twice as fast. This establishes a new standard for economical large language model deployment.</p>
+                <button class="read-more-btn" onclick="openModal(this)">Read more...</button>
+              </div>
+              <div class="card-tags">
+                <span class="card-tag">GPT-4o</span>
+                <span class="card-tag">API</span>
+                <span class="card-tag">OpenAI</span>
+              </div>
+              <div class="card-footer">
+                <div class="card-meta">
+                  <span class="card-author">Sam Altman</span>
+                  <span class="card-source">OpenAI</span>
+                </div>
+                <div class="card-right">
+                  <span class="card-date">Jun 18, 2026</span>
+                  <a href="https://openai.com" target="_blank" rel="noopener noreferrer" class="read-link">Read →</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mock Card 2 -->
+            <div class="card"
+                 data-id="2"
+                 data-tags="Gemini,DeepMind"
+                 data-date="2026-06-17">
+              <div class="card-top">
+                <h3 class="card-title">Gemini 2.5 Pro achieves new SOTA on long-context reasoning benchmarks</h3>
+                <button class="save-btn" 
+                        data-id="2"
+                        onclick="toggleSave(this, '2')"
+                        aria-label="Save article">
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="card-summary-wrap">
+                <p class="card-summary">DeepMind publishes results showing Gemini 2.5 Pro outperforming all prior models on RULER and HELMET long-context evaluation suites. The context window now seamlessly handles up to 4 million tokens without degradation in recall accuracy. Developers can begin integrating this immediately via Google Cloud.</p>
+                <button class="read-more-btn" onclick="openModal(this)">Read more...</button>
+              </div>
+              <div class="card-tags">
+                <span class="card-tag">Gemini</span>
+                <span class="card-tag">DeepMind</span>
+              </div>
+              <div class="card-footer">
+                <div class="card-meta">
+                  <span class="card-author">Sundar Pichai</span>
+                  <span class="card-source">DeepMind</span>
+                </div>
+                <div class="card-right">
+                  <span class="card-date">Jun 17, 2026</span>
+                  <a href="https://deepmind.google" target="_blank" rel="noopener noreferrer" class="read-link">Read →</a>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mock Card 3 -->
+            <div class="card"
+                 data-id="3"
+                 data-tags="API"
+                 data-date="2026-06-15">
+              <div class="card-top">
+                <h3 class="card-title">Anthropic drops API pricing by 50% for high-volume customers</h3>
+                <button class="save-btn" 
+                        data-id="3"
+                        onclick="toggleSave(this, '3')"
+                        aria-label="Save article">
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="card-summary-wrap">
+                <p class="card-summary">In a bid to capture more enterprise workloads, Anthropic has drastically reduced the cost per 1k tokens for Claude 3.5 Sonnet. This discount applies automatically to accounts spending over $1,000 monthly. The move is expected to heavily disrupt the current enterprise LLM market dynamics.</p>
+                <button class="read-more-btn" onclick="openModal(this)">Read more...</button>
+              </div>
+              <div class="card-tags">
+                <span class="card-tag">API</span>
+                <span class="card-tag">Anthropic</span>
+              </div>
+              <div class="card-footer">
+                <div class="card-meta">
+                  <span class="card-author">Dario Amodei</span>
+                  <span class="card-source">Anthropic</span>
+                </div>
+                <div class="card-right">
+                  <span class="card-date">Jun 15, 2026</span>
+                  <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer" class="read-link">Read →</a>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mock Card 4 -->
+            <div class="card"
+                 data-id="4"
+                 data-tags="GPT-4o,Research"
+                 data-date="2026-06-10">
+              <div class="card-top">
+                <h3 class="card-title">OpenAI outlines strategy for iterative alignment in massive datasets</h3>
+                <button class="save-btn" 
+                        data-id="4"
+                        onclick="toggleSave(this, '4')"
+                        aria-label="Save article">
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="card-summary-wrap">
+                <p class="card-summary">A newly published research paper from OpenAI dives deep into how they manage catastrophic forgetting during RLHF phases. They introduce a novel "anchor-point" technique that preserves reasoning capabilities while steering tone. This approach could redefine how open-source models approach safety tuning.</p>
+                <button class="read-more-btn" onclick="openModal(this)">Read more...</button>
+              </div>
+              <div class="card-tags">
+                <span class="card-tag">GPT-4o</span>
+                <span class="card-tag">Research</span>
+              </div>
+              <div class="card-footer">
+                <div class="card-meta">
+                  <span class="card-author">Ilya Sutskever</span>
+                  <span class="card-source">OpenAI Research</span>
+                </div>
+                <div class="card-right">
+                  <span class="card-date">Jun 10, 2026</span>
+                  <a href="https://openai.com/research" target="_blank" rel="noopener noreferrer" class="read-link">Read →</a>
+                </div>
+              </div>
+            </div>
+        </div>
+        
+        <!-- Empty State Container -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <i class="ti ti-bookmarks" aria-hidden="true"></i>
+            <h3>No Saved Articles</h3>
+            <p>You haven't saved any articles yet. Bookmark news you want to read later.</p>
+            <a href="#" onclick="switchTab('feed', event)">Explore Feed</a>
+        </div>
+        
+    </main>
+
+    <!-- Modal Popup -->
+    <div id="card-modal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // Modal logic
+        function openModal(btn) {
+            const card = btn.closest('.card');
+            const title = card.querySelector('.card-title').textContent;
+            const summary = card.querySelector('.card-summary').textContent;
+            const tagsHtml = card.querySelector('.card-tags').innerHTML;
+            const metaHtml = card.querySelector('.card-footer').innerHTML;
+            
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <h2 style="font-family: var(--font-display); font-size: 32px; color: var(--text); margin-bottom: 16px; letter-spacing: 0.04em; line-height: 1.1; padding-right: 24px;">${title}</h2>
+                <div class="card-tags" style="margin-bottom: 24px;">${tagsHtml}</div>
+                <p style="font-size: 16px; color: var(--text-muted); line-height: 1.6; margin-bottom: 32px;">${summary}</p>
+                <div class="card-footer" style="border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: space-between; align-items: flex-end;">${metaHtml}</div>
+            `;
+            
+            document.getElementById('card-modal').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(e) {
+            if (e && e.target !== e.currentTarget && e.target.closest('.modal-close') === null) return;
+            document.getElementById('card-modal').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function checkReadMore() {
+            document.querySelectorAll('.card-summary').forEach(p => {
+                if (p.scrollHeight > p.clientHeight) {
+                    p.nextElementSibling.style.display = 'inline-block';
+                } else {
+                    p.nextElementSibling.style.display = 'none';
+                }
+            });
+        }
+
+        let activeTag = 'all';
+        let currentTab = 'feed';
+
+        function switchTab(tab, e) {
+            if (e) e.preventDefault();
+            currentTab = tab;
+            
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            if (e) e.target.classList.add('active');
+            else document.querySelector(`.nav-links a[onclick*="${tab}"]`).classList.add('active');
+            
+            const controls = document.getElementById('controls-section');
+            const savedHeader = document.getElementById('saved-header');
+            
+            if (tab === 'feed') {
+                controls.style.display = 'block';
+                savedHeader.style.display = 'none';
+            } else {
+                controls.style.display = 'none';
+                savedHeader.style.display = 'block';
+            }
+            
+            applyFilters();
+        }
+
+        function setTag(el, tag) {
+            activeTag = tag;
+            document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const q = document.getElementById('search-in').value.toLowerCase();
+            const saved = JSON.parse(localStorage.getItem('mock_saved_posts') || '[]');
+            
+            let visibleCount = 0;
+            
+            document.querySelectorAll('.card').forEach(card => {
+                const isSaved = saved.includes(card.dataset.id);
+                
+                if (currentTab === 'saved' && !isSaved) {
+                    card.style.display = 'none';
+                    return;
+                }
+                
+                const tags = card.dataset.tags ? card.dataset.tags.toLowerCase() : "";
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const summary = card.querySelector('.card-summary').textContent.toLowerCase();
+                
+                const tagOk = currentTab === 'saved' || activeTag === 'all' || tags.split(',').includes(activeTag.toLowerCase()) || tags.includes(activeTag.toLowerCase());
+                const searchOk = currentTab === 'saved' || !q || title.includes(q) || summary.includes(q) || tags.includes(q);
+                
+                if (tagOk && searchOk) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            const emptyState = document.getElementById('empty-state');
+            if (visibleCount === 0 && currentTab === 'saved') {
+                emptyState.style.display = 'block';
+                document.getElementById('grid').style.display = 'none';
+            } else {
+                emptyState.style.display = 'none';
+                document.getElementById('grid').style.display = 'grid';
+            }
+        }
+
+        function toggleSortMenu(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('sort-menu');
+            const btn = document.getElementById('sort-btn');
+            menu.classList.toggle('open');
+            btn.classList.toggle('open');
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.sort-wrap')) {
+                const menu = document.getElementById('sort-menu');
+                const btn = document.getElementById('sort-btn');
+                if (menu && menu.classList.contains('open')) {
+                    menu.classList.remove('open');
+                    btn.classList.remove('open');
+                }
+            }
+        });
+
+        function selectSort(order) {
+            const grid = document.getElementById('grid');
+            const cards = [...grid.querySelectorAll('.card')];
+            cards.sort((a, b) => {
+                const da = new Date(a.dataset.date), db = new Date(b.dataset.date);
+                return order === 'newest' ? db - da : da - db;
+            });
+            cards.forEach(c => grid.appendChild(c));
+            
+            const menu = document.getElementById('sort-menu');
+            menu.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            menu.classList.remove('open');
+            document.getElementById('sort-btn').classList.remove('open');
+        }
+
+        function toggleSave(btn, postId) {
+            const isSaved = btn.classList.contains('saved');
+            if (isSaved) {
+                btn.classList.remove('saved');
+                btn.querySelector('i').classList.replace('ti-bookmark-filled', 'ti-bookmark');
+            } else {
+                btn.classList.add('saved');
+                btn.querySelector('i').classList.replace('ti-bookmark', 'ti-bookmark-filled');
+            }
+            
+            btn.classList.remove('animating');
+            void btn.offsetWidth; // trigger reflow
+            btn.classList.add('animating');
+            btn.addEventListener('animationend', () => btn.classList.remove('animating'), { once: true });
+            
+            let saved = JSON.parse(localStorage.getItem('mock_saved_posts') || '[]');
+            if (!isSaved) {
+                if (!saved.includes(postId)) saved.push(postId);
+            } else {
+                saved = saved.filter(id => id !== postId);
+            }
+            localStorage.setItem('mock_saved_posts', JSON.stringify(saved));
+            
+            // If we are currently on the saved tab, removing an item should re-run filters to hide it
+            if (currentTab === 'saved' && isSaved) {
+                setTimeout(applyFilters, 300); // Small delay to let the animation play out
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            var textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {}
+            document.body.removeChild(textArea);
+        }
+
+        function copyToken() {
+            let t = localStorage.getItem('ainews_token');
+            if (!t) {
+                t = 'sess_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem('ainews_token', t);
+            }
+            
+            // If testing locally without a server, just copy the token string to avoid confusion.
+            // Otherwise, copy the full URL intended for production sharing.
+            let textToCopy = t;
+            if (window.location.protocol !== 'file:') {
+                textToCopy = window.location.origin + '/saved?token=' + t;
+            }
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).catch(() => fallbackCopyTextToClipboard(textToCopy));
+            } else {
+                fallbackCopyTextToClipboard(textToCopy);
+            }
+
+            const btn = document.getElementById('copy-btn');
+            btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copy session';
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            let saved = JSON.parse(localStorage.getItem('mock_saved_posts') || '[]');
+            document.querySelectorAll('.save-btn').forEach(btn => {
+                if (saved.includes(btn.dataset.id)) {
+                    btn.classList.add('saved');
+                    btn.querySelector('i').classList.replace('ti-bookmark', 'ti-bookmark-filled');
+                }
+            });
+            applyFilters();
+            setTimeout(checkReadMore, 100);
+            window.addEventListener('resize', checkReadMore);
+        });
+    </script>
+</body>
+</html>

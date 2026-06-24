@@ -1,0 +1,36 @@
+<div class="card"
+     data-id="{{ post.id }}"
+     data-tags="{{ post.tags | join_tags }}"
+     data-date="{% if post.published_at %}{{ post.published_at.strftime('%Y-%m-%d') }}{% else %}{{ post.fetched_at.strftime('%Y-%m-%d') }}{% endif %}">
+  <div class="card-top">
+    <h3 class="card-title">{{ post.title }}</h3>
+    <button class="save-btn" 
+            data-id="{{ post.id }}"
+            onclick="toggleSave(this, '{{ post.id }}')"
+            aria-label="Save article">
+      <i class="ti ti-bookmark" aria-hidden="true"></i>
+    </button>
+  </div>
+  <div class="card-summary-wrap">
+    <p class="card-summary">{{ post.summary }}</p>
+    <button class="read-more-btn" onclick="openModal(this)">Read more...</button>
+  </div>
+  <div class="card-tags">
+    {% for tag in post.tags %}
+    <span class="card-tag">{{ tag }}</span>
+    {% endfor %}
+  </div>
+  <div class="card-footer">
+    <div class="card-meta">
+      <span class="card-author">{% if post.author %}<i class="ti ti-discount-check-filled" aria-hidden="true" style="color: var(--red); font-size: 14px; vertical-align: middle; margin-right: 4px;"></i>{{ post.author }}{% endif %}</span>
+      <span class="card-source">{% if post.source %}{{ post.source.name }}{% endif %}</span>
+    </div>
+    <div class="card-right">
+      <span>{% if post.published_at %}{{ post.published_at.strftime('%b %d, %Y') }}{% else %}{{ post.fetched_at.strftime('%b %d, %Y') }}{% endif %}</span>
+      <a href="{{ post.original_url }}" 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="read-link">Read →</a>
+    </div>
+  </div>
+</div>

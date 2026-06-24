@@ -1,0 +1,83 @@
+{% extends "frontend/base.jinja" %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+    <h2>Saved Articles</h2>
+    <p style="color: var(--text-muted); font-size: 14px;">Your private, portable library.</p>
+</div>
+
+<div class="grid" id="grid">
+    {% for post in posts %}
+        {% include 'frontend/post_card.jinja' %}
+    {% else %}
+        <div class="empty-state" style="grid-column: 1 / -1;">
+            <i class="ti ti-bookmark" aria-hidden="true"></i>
+            <p>Nothing saved yet.</p>
+            <a href="/">Back to feed</a>
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+let activeQ = '{{ active_q or "" }}';
+const token = '{{ token }}';
+
+function updateQueryParam(key, value) {
+    const url = new URL(window.location);
+    if (value) {
+        url.searchParams.set(key, value);
+    } else {
+        url.searchParams.delete(key);
+    }
+    return url.pathname + url.search;
+}
+
+// Debouncer for search input
+let debounceTimer;
+function debounce(func, delay) {
+    return function(...args) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+function onSearchInput() {
+    activeQ = document.getElementById('search-in').value;
+    history.replaceState(null, '', updateQueryParam('q', activeQ));
+    debouncedReload();
+}
+
+const debouncedReload = debounce(reloadSavedFeed, 300);
+
+// Fetch and reload only the matching saved posts
+function reloadSavedFeed() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: var(--text-muted);"><p>Loading articles...</p></div>';
+    
+    const url = `/saved?token=${token}&q=${encodeURIComponent(activeQ)}&ajax=1`;
+    
+    return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            grid.innerHTML = data.html;
+            
+            // Re-hydrate bookmarks, observe cards, and check overflow for "Read more"
+            if (typeof hydrateSaved === 'function') hydrateSaved();
+            if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+            if (typeof observeCards === 'function') observeCards();
+        })
+        .catch(err => {
+            console.error('Error reloading saved feed:', err);
+            grid.innerHTML = '<div class="error-state"><p>Failed to load saved articles. Please try again.</p></div>';
+        });
+}
+
+// Bind search input on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-in');
+    if (searchInput) {
+        searchInput.addEventListener('input', onSearchInput);
+    }
+});
+</script>
+{% endblock %}

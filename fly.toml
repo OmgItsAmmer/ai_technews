@@ -1,0 +1,24 @@
+app = "ainews"
+primary_region = "iad"
+
+[build]
+
+[env]
+  DJANGO_SETTINGS_MODULE = "config.settings.production"
+  REDIS_URL = "redis://127.0.0.1:6379/0"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["web"]
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[processes]
+  web = "supervisord -c /etc/supervisor/conf.d/supervisord.conf"
