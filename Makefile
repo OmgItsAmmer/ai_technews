@@ -24,7 +24,6 @@ help:
 	@echo ""
 	@echo "Celery Tasks:"
 	@echo "  make worker          - Start the Celery worker process"
-	@echo "  make beat            - Start the Celery beat scheduler"
 	@echo ""
 	@echo "Testing & Quality:"
 	@echo "  make test            - Run the pytest suite"
@@ -72,11 +71,8 @@ superuser:
 
 # Start Celery worker
 worker:
-	celery -A config worker --loglevel=info
+	celery -A config worker --pool=solo --loglevel=info
 
-# Start Celery beat
-beat:
-	celery -A config beat --loglevel=info
 
 # Run test suite
 test:

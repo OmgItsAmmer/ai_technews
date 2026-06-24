@@ -65,6 +65,7 @@ def extract_from_text(text: str) -> dict[str, Any]:
             {"role": "user", "content": EXTRACTION_USER_PROMPT.format(text=text)},
         ],
         temperature=0.2,
+        max_tokens=400,
     )
     raw_content = response.choices[0].message.content or "{}"
     data = _parse_json_response(raw_content)

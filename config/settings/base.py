@@ -58,6 +58,9 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
+            "filters": {
+                "join_tags": "apps.frontend.templatetags.jinja_filters.join_tags",
+            },
         },
     },
     {
@@ -140,7 +143,7 @@ LLM_MODEL = os.environ.get("LLM_MODEL", "gpt-4o-mini")
 FETCHER_DEDUP_REDIS_KEY = "fetcher:seen_urls"
 FETCHER_DEDUP_TTL_SECONDS = 30 * 24 * 60 * 60
 FETCHER_MAX_HOMEPAGE_LINKS = 30
-FETCHER_MAX_ARTICLE_TEXT_CHARS = 8000
+FETCHER_MAX_ARTICLE_TEXT_CHARS = 3000
 
 LOGGING = {
     "version": 1,
