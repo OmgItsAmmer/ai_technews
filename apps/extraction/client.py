@@ -8,19 +8,29 @@ logger = logging.getLogger(__name__)
 
 def call_openai_extractor(content: str) -> dict:
     """
-    Calls OpenAI (gpt-4o-mini) to extract metadata from the provided content.
-    If the API key is not configured or is a placeholder, falls back to a smart mock.
+    Calls OpenAI to extract metadata from the provided content.
+    If the API key is not configured or is a placeholder, and no base_url is set,
+    falls back to a smart mock.
     """
     api_key = getattr(settings, 'OPENAI_API_KEY', '')
+    base_url = getattr(settings, 'OPENAI_BASE_URL', None)
     model = getattr(settings, 'OPENAI_MODEL', 'gpt-4o-mini')
     
-    # If using the default placeholder or empty key, use local mock response
-    if not api_key or api_key == 'sk-...' or api_key.startswith('sk-mock'):
-        logger.info("Using mock response because no real OpenAI API Key was found.")
+    # If no real OpenAI API key is configured AND no custom base_url is set, fall back to mock
+    is_placeholder_key = not api_key or api_key == 'sk-...' or api_key.startswith('sk-mock')
+    if is_placeholder_key and not base_url:
+        logger.info("Using mock response because no real OpenAI API Key and no custom base_url was found.")
         return get_mock_response(content)
         
     try:
-        client = OpenAI(api_key=api_key)
+        if base_url:
+            client = OpenAI(
+                base_url=base_url,
+                api_key=api_key or "not-needed"
+            )
+        else:
+            client = OpenAI(api_key=api_key)
+
         response = client.chat.completions.create(
             model=model,
             messages=[
