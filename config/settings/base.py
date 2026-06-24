@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.posts",
     "apps.fetcher",
     "apps.extractor",
+    "apps.extraction",
     "apps.frontend",
 ]
 
@@ -65,7 +66,7 @@ TEMPLATES = [
     },
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -139,6 +140,7 @@ CRON_SECRET = os.environ.get("CRON_SECRET", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", None)
 LLM_MODEL = os.environ.get("LLM_MODEL", "gpt-4o-mini")
+OPENAI_MODEL = LLM_MODEL  # alias used by apps.extraction.client
 
 FETCHER_DEDUP_REDIS_KEY = "fetcher:seen_urls"
 FETCHER_DEDUP_TTL_SECONDS = 30 * 24 * 60 * 60

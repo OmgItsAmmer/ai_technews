@@ -1,32 +1,15 @@
 from django.contrib import admin
+from config.admin_site import admin_site
+from apps.posts.models import Post
 
-from .models import Post
 
-
-@admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ("title", "status", "published_at", "tags")
-    list_filter = ("status",)
-    search_fields = ("title", "summary")
-    readonly_fields = (
-        "source",
-        "title",
-        "original_url",
-        "author",
-        "published_at",
-        "fetched_at",
-        "raw_content",
-        "summary",
-        "tags",
-        "status",
-        "url_hash",
-    )
+    list_display = ("title", "tags", "published_at", "status")
 
     def has_add_permission(self, request):
+        # Disables the standard "Add" button — posts are added via the intake form
         return False
 
-    def has_change_permission(self, request, obj=None):
-        return False
 
-    def has_delete_permission(self, request, obj=None):
-        return False
+# Register Post on our custom ainews_admin site
+admin_site.register(Post, PostAdmin)
