@@ -1,0 +1,133 @@
+{% extends "frontend/base.html" %}
+
+{% block content %}
+<div class="controls-row">
+    <div class="search-wrap">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" id="search-in" name="q" placeholder="Search articles..." value="{{ active_q or '' }}" oninput="applyFilters()">
+    </div>
+    <div class="sort-wrap">
+        <button id="sort-btn" class="sort-btn" onclick="toggleSortMenu(event)" aria-label="Sort options">
+            <i class="ti ti-arrows-sort" aria-hidden="true"></i>
+        </button>
+        <div id="sort-menu" class="sort-menu">
+            <button class="{% if active_sort == 'newest' %}active{% endif %}" onclick="selectSort('newest')">Newest first</button>
+            <button class="{% if active_sort == 'oldest' %}active{% endif %}" onclick="selectSort('oldest')">Oldest first</button>
+        </div>
+    </div>
+</div>
+
+<div class="tag-row">
+    <span class="tag-chip {% if not active_tag %}active{% endif %}" 
+          onclick="setTag(this, '')">All</span>
+    {% for tag in all_tags %}
+      <span class="tag-chip {% if active_tag == tag %}active{% endif %}"
+            onclick="setTag(this, '{{ tag }}')">{{ tag }}</span>
+    {% endfor %}
+</div>
+
+<div class="grid" id="grid">
+    {% for post in posts %}
+        {% include 'frontend/post_card.html' %}
+    {% else %}
+        <div class="empty-state">
+            <p>No articles match your filters.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="pagination">
+    {% if page > 1 %}
+      <a href="/?page={{ page - 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}">← Previous</a>
+    {% endif %}
+    {% if page < total_pages %}
+      <a href="/?page={{ page + 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}">Next →</a>
+    {% endif %}
+</div>
+
+<script>
+let activeTag = '{{ active_tag }}';
+
+function setTag(el, tag) {
+    activeTag = tag;
+    document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    applyFilters();
+    history.replaceState(null, '', updateQueryParam('tag', tag));
+}
+
+function applyFilters() {
+    const q = document.getElementById('search-in').value.toLowerCase();
+    document.querySelectorAll('.card').forEach(card => {
+        const tags = card.dataset.tags ? card.dataset.tags.toLowerCase() : "";
+        const title = card.querySelector('.card-title').textContent.toLowerCase();
+        const summary = card.querySelector('.card-summary').textContent.toLowerCase();
+        const tagOk = !activeTag || tags.split(', ').includes(activeTag.toLowerCase()) || tags.includes(activeTag.toLowerCase());
+        const searchOk = !q || title.includes(q) || summary.includes(q) || tags.includes(q);
+        card.style.display = (tagOk && searchOk) ? '' : 'none';
+    });
+    
+    // Also sync search query to URL without reload
+    history.replaceState(null, '', updateQueryParam('q', document.getElementById('search-in').value));
+}
+
+function updateQueryParam(key, value) {
+    const url = new URL(window.location);
+    if (value) {
+        url.searchParams.set(key, value);
+    } else {
+        url.searchParams.delete(key);
+    }
+    return url.pathname + url.search;
+}
+
+function toggleSortMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('sort-menu');
+    const btn = document.getElementById('sort-btn');
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.sort-wrap')) {
+        const menu = document.getElementById('sort-menu');
+        const btn = document.getElementById('sort-btn');
+        if (menu && menu.classList.contains('open')) {
+            menu.classList.remove('open');
+            btn.classList.remove('open');
+        }
+    }
+});
+
+function selectSort(order) {
+    const grid = document.getElementById('grid');
+    const cards = [...grid.querySelectorAll('.card')];
+    cards.sort((a, b) => {
+        const da = new Date(a.dataset.date), db = new Date(b.dataset.date);
+        return order === 'newest' ? db - da : da - db;
+    });
+    // Re-append in new order
+    cards.forEach(c => grid.appendChild(c));
+    
+    // Update active class
+    const menu = document.getElementById('sort-menu');
+    menu.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Close menu
+    menu.classList.remove('open');
+    document.getElementById('sort-btn').classList.remove('open');
+    
+    // Update URL
+    history.replaceState(null, '', updateQueryParam('sort', order));
+}
+
+// Initial filter apply if search input is prepopulated
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('search-in').value || activeTag) {
+        applyFilters();
+    }
+});
+</script>
+{% endblock %}
