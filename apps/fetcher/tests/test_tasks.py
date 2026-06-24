@@ -60,7 +60,7 @@ def test_process_source_saves_valid_pending_post(
     from apps.posts.models import Post
 
     post = Post.objects.get(original_url="https://example.com/new-post")
-    assert post.status == "pending"
+    assert post.status == "approved"
     assert post.title == "Extracted Title"
     assert post.raw_content == "Full article body"
     assert post.tags == ["llms"]

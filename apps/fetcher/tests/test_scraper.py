@@ -31,8 +31,9 @@ def test_discover_article_links_returns_same_domain_links(mock_get):
         "https://example.com/blog/post-1",
         "https://example.com/blog/post-2",
     ]
+    from apps.fetcher.scraper import DEFAULT_HEADERS
     mock_get.assert_called_once_with(
-        "https://example.com/", timeout=30.0, follow_redirects=True
+        "https://example.com/", headers=DEFAULT_HEADERS, timeout=30.0, follow_redirects=True
     )
 
 

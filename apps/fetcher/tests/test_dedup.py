@@ -39,3 +39,14 @@ def test_is_new_url_hashes_are_stored_not_raw_urls(redis_client):
     members = redis_client.smembers(settings.FETCHER_DEDUP_REDIS_KEY)
     assert url not in members
     assert len(members) == 1
+
+
+def test_remove_seen_url_removes_url_from_redis(redis_client):
+    from apps.fetcher.dedup import remove_seen_url
+    url = "https://example.com/article-to-remove"
+    assert is_new_url(url, redis_client=redis_client) is True
+    assert is_new_url(url, redis_client=redis_client) is False
+    
+    remove_seen_url(url, redis_client=redis_client)
+    assert is_new_url(url, redis_client=redis_client) is True
+

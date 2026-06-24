@@ -15,7 +15,7 @@ Given article text, decide whether it is valid tech or AI news and return ONLY a
 - invalid_reason (string or null; required when is_valid_news is false)
 
 Rules:
-1. If the content is not real tech/AI news, set is_valid_news to false and explain in invalid_reason.
+1. Determine if the content is related to tech or AI (e.g., software releases, research, business tech, AI advancements, hardware). If the content is unrelated (lifestyle, sports, politics, personal updates, generic ads/marketing), set is_valid_news to false and explain in invalid_reason. Do not try to fact-check the news claims, only evaluate if the topic belongs to the tech/AI domain.
 2. Return JSON only. No markdown fences, preamble, or explanation.
 3. Use only tag slugs from the allowlist.
 4. If you cannot determine a field, set it to null/empty and include the field name in missing_fields.

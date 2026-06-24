@@ -1,0 +1,383 @@
+{% extends "frontend/base.jinja" %}
+
+{% block content %}
+<style>
+.feed-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  width: 100%;
+}
+.feed-main-col {
+  flex: 1;
+  min-width: 0;
+}
+.feed-sidebar-col {
+  width: 300px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 80px;
+}
+
+/* Filter Card Styling */
+.filter-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.filter-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 0.5px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+}
+.filter-title i {
+  color: var(--red);
+  font-size: 20px;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.filter-group label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.filter-group select, .filter-group input[type="date"] {
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+.filter-group select:focus, .filter-group input[type="date"]:focus {
+  border-color: var(--border-hover);
+}
+.clear-filters-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid var(--border);
+  color: var(--text-muted);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.15s;
+  margin-top: 8px;
+  cursor: pointer;
+}
+.clear-filters-btn:hover {
+  background: var(--red-dim);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* Responsiveness for Smaller Screen Filters */
+@media (max-width: 1000px) {
+  .feed-layout {
+    flex-direction: column-reverse;
+    gap: 32px;
+  }
+  .feed-sidebar-col {
+    width: 100%;
+    position: static;
+  }
+}
+</style>
+
+<div class="feed-layout">
+    <div class="feed-main-col">
+
+
+        <div class="tag-row">
+            <span class="tag-chip {% if not active_tag %}active{% endif %}" 
+                  onclick="setTag(this, '')">All</span>
+            {% for tag in all_tags %}
+              <span class="tag-chip {% if active_tag == tag %}active{% endif %}"
+                    onclick="setTag(this, '{{ tag }}')">{{ tag }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="grid" id="grid">
+            {% for post in posts %}
+                {% include 'frontend/post_card.jinja' %}
+            {% else %}
+                <div class="empty-state">
+                    <p>No articles match your filters.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div id="sentinel" style="height: 10px; margin-bottom: 20px;"></div>
+    </div>
+
+    <div class="feed-sidebar-col">
+        <div class="filter-card">
+            <h3 class="filter-title"><i class="ti ti-adjustments-horizontal"></i> Filters</h3>
+            
+            <div class="filter-group">
+                <label for="filter-source">Source</label>
+                <select id="filter-source" onchange="onSourceChange()">
+                    <option value="">All Sources</option>
+                    {% for source in all_sources %}
+                        <option value="{{ source.id }}" {% if active_source|string == source.id|string %}selected{% endif %}>{{ source.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-start-date">Start Date</label>
+                <input type="date" id="filter-start-date" value="{{ active_start_date or '' }}" onchange="onDateChange()">
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-end-date">End Date</label>
+                <input type="date" id="filter-end-date" value="{{ active_end_date or '' }}" onchange="onDateChange()">
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-sort">Sort Order</label>
+                <select id="filter-sort" onchange="onSortChange()">
+                    <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>Newest first</option>
+                    <option value="oldest" {% if active_sort == 'oldest' %}selected{% endif %}>Oldest first</option>
+                </select>
+            </div>
+            
+            <button class="clear-filters-btn" onclick="clearAllFilters()">Clear Filters</button>
+        </div>
+    </div>
+</div>
+
+<div class="pagination" id="pagination-controls">
+    {% if page > 1 %}
+      <a href="/?page={{ page - 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}&source={{ active_source }}&start_date={{ active_start_date }}&end_date={{ active_end_date }}">← Previous</a>
+    {% endif %}
+    {% if page < total_pages %}
+      <a href="/?page={{ page + 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}&source={{ active_source }}&start_date={{ active_start_date }}&end_date={{ active_end_date }}">Next →</a>
+    {% endif %}
+</div>
+
+<script>
+let activeTag = '{{ active_tag }}';
+let activeQ = '{{ active_q or "" }}';
+let activeSort = '{{ active_sort or "newest" }}';
+let activeSource = '{{ active_source or "" }}';
+let activeStartDate = '{{ active_start_date or "" }}';
+let activeEndDate = '{{ active_end_date or "" }}';
+let currentPage = {{ page }};
+let totalPages = {{ total_pages }};
+let isLoading = false;
+
+// Progressive enhancement: hide traditional pagination
+const paginationControls = document.getElementById('pagination-controls');
+if (paginationControls) {
+    paginationControls.style.display = 'none';
+}
+
+function updateQueryParam(key, value) {
+    const url = new URL(window.location);
+    if (value) {
+        url.searchParams.set(key, value);
+    } else {
+        url.searchParams.delete(key);
+    }
+    return url.pathname + url.search;
+}
+
+function setTag(el, tag) {
+    activeTag = tag;
+    document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    history.replaceState(null, '', updateQueryParam('tag', tag));
+    reloadFeed();
+}
+
+function onSortChange() {
+    activeSort = document.getElementById('filter-sort').value;
+    history.replaceState(null, '', updateQueryParam('sort', activeSort));
+    reloadFeed();
+}
+
+function onSourceChange() {
+    activeSource = document.getElementById('filter-source').value;
+    history.replaceState(null, '', updateQueryParam('source', activeSource));
+    reloadFeed();
+}
+
+function onDateChange() {
+    activeStartDate = document.getElementById('filter-start-date').value;
+    activeEndDate = document.getElementById('filter-end-date').value;
+    history.replaceState(null, '', updateQueryParam('start_date', activeStartDate));
+    history.replaceState(null, '', updateQueryParam('end_date', activeEndDate));
+    reloadFeed();
+}
+
+function clearAllFilters() {
+    activeSource = '';
+    activeStartDate = '';
+    activeEndDate = '';
+    activeQ = '';
+    activeTag = '';
+    activeSort = 'newest';
+    
+    document.getElementById('filter-source').value = '';
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    document.getElementById('filter-sort').value = 'newest';
+    const headerSearch = document.getElementById('search-in');
+    if (headerSearch) headerSearch.value = '';
+    
+    document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
+    const allChip = Array.from(document.querySelectorAll('.tag-chip')).find(c => c.textContent.trim() === 'All');
+    if (allChip) allChip.classList.add('active');
+    
+    // Clear URL parameters
+    const url = new URL(window.location);
+    url.searchParams.delete('source');
+    url.searchParams.delete('start_date');
+    url.searchParams.delete('end_date');
+    url.searchParams.delete('q');
+    url.searchParams.delete('tag');
+    url.searchParams.delete('sort');
+    history.replaceState(null, '', url.pathname + url.search);
+    
+    reloadFeed();
+}
+
+// Debouncer for search input
+let debounceTimer;
+function debounce(func, delay) {
+    return function(...args) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+function onSearchInput() {
+    activeQ = document.getElementById('search-in').value;
+    history.replaceState(null, '', updateQueryParam('q', activeQ));
+    debouncedReload();
+}
+
+const debouncedReload = debounce(reloadFeed, 300);
+
+function reloadFeed() {
+    currentPage = 1;
+    isLoading = true;
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: var(--text-muted);"><p>Loading articles...</p></div>';
+    
+    const url = `/?page=1&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&ajax=1`;
+    
+    return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            totalPages = data.total_pages;
+            currentPage = data.page;
+            grid.innerHTML = data.html || '<div class="empty-state"><p>No articles match your filters.</p></div>';
+            
+            // Re-hydrate bookmarks and check overflow for "Read more"
+            if (typeof hydrateSaved === 'function') hydrateSaved();
+            if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+            if (typeof observeCards === 'function') observeCards();
+            
+            // Re-observe sentinel if there are pages left
+            if (currentPage < totalPages) {
+                sentinelObserver.observe(sentinel);
+            } else {
+                sentinelObserver.unobserve(sentinel);
+            }
+            isLoading = false;
+        })
+        .catch(err => {
+            console.error('Error reloading feed:', err);
+            grid.innerHTML = '<div class="error-state"><p>Failed to load articles. Please try again.</p></div>';
+            isLoading = false;
+        });
+}
+
+function fetchNextPage() {
+    if (isLoading || currentPage >= totalPages) return;
+    isLoading = true;
+    
+    const nextPage = currentPage + 1;
+    const url = `/?page=${nextPage}&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&ajax=1`;
+    
+    // Add loading spinner below grid
+    const loader = document.createElement('div');
+    loader.id = 'lazy-loader-spinner';
+    loader.style.textAlign = 'center';
+    loader.style.padding = '20px';
+    loader.style.color = 'var(--text-muted)';
+    loader.innerHTML = '<p>Loading more articles...</p>';
+    document.getElementById('grid').after(loader);
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('lazy-loader-spinner')?.remove();
+            totalPages = data.total_pages;
+            currentPage = data.page;
+            
+            if (data.html) {
+                const grid = document.getElementById('grid');
+                grid.insertAdjacentHTML('beforeend', data.html);
+                
+                // Re-hydrate bookmarks and check overflow for new cards
+                if (typeof hydrateSaved === 'function') hydrateSaved();
+                if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+                if (typeof observeCards === 'function') observeCards();
+            }
+            
+            if (currentPage >= totalPages) {
+                sentinelObserver.unobserve(sentinel);
+            }
+            isLoading = false;
+        })
+        .catch(err => {
+            console.error('Error loading next page:', err);
+            document.getElementById('lazy-loader-spinner')?.remove();
+            isLoading = false;
+        });
+}
+
+// Setup IntersectionObserver for scroll-based pagination
+let sentinelObserver;
+const sentinel = document.getElementById('sentinel');
+
+if (sentinel) {
+    sentinelObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !isLoading && currentPage < totalPages) {
+                fetchNextPage();
+            }
+        });
+    }, { rootMargin: '200px' });
+    sentinelObserver.observe(sentinel);
+}
+// Bind search input to onSearchInput since search bar is inside base.jinja header
+const searchInput = document.getElementById('search-in');
+if (searchInput) {
+    searchInput.addEventListener('input', onSearchInput);
+}
+</script>
+{% endblock %}

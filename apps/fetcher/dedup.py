@@ -31,3 +31,11 @@ def is_new_url(url: str, redis_client: redis.Redis | None = None) -> bool:
 
     client.expire(key, ttl)
     return False
+
+
+def remove_seen_url(url: str, redis_client: redis.Redis | None = None) -> None:
+    """Remove a URL hash from the Redis seen set, allowing it to be retried."""
+    client = redis_client or _get_redis_client()
+    key = settings.FETCHER_DEDUP_REDIS_KEY
+    client.srem(key, _url_hash(url))
+
