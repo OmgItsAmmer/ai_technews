@@ -40,7 +40,7 @@ class Post(models.Model):
     url_hash = models.CharField(max_length=64, blank=True, db_index=True)
 
     class Meta:
-        ordering = ["-published_at", "-fetched_at"]
+        ordering = [models.F("published_at").desc(nulls_last=True), "-fetched_at"]
         indexes = [
             models.Index(fields=["status", "published_at"]),
             GinIndex(fields=["tags"], name="posts_tags_gin"),
