@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapid News</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ static('frontend/css/main.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="logo">Rapid News</a>
+        </div>
+        <div class="nav-center">
+            <div class="nav-links">
+                <a href="/" {% if active_page == 'feed' %}class="active"{% endif %}>Feed</a>
+                <a href="/saved" {% if active_page == 'saved' %}class="active"{% endif %}>Saved</a>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button id="copy-btn" class="icon-btn" onclick="copyToken()">
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy session
+            </button>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Modal Popup -->
+    <div id="card-modal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // Session Token System
+        function getOrCreateToken() {
+            let t = localStorage.getItem('ainews_token');
+            if (!t) {
+                t = 'sess_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem('ainews_token', t);
+            }
+            return t;
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            var textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {}
+            document.body.removeChild(textArea);
+        }
+
+        // Copy session to clipboard
+        function copyToken() {
+            const t = getOrCreateToken();
+            let textToCopy = t;
+            if (window.location.protocol !== 'file:') {
+                textToCopy = window.location.origin + '/saved?token=' + t;
+            }
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).catch(() => fallbackCopyTextToClipboard(textToCopy));
+            } else {
+                fallbackCopyTextToClipboard(textToCopy);
+            }
+
+            const btn = document.getElementById('copy-btn');
+            btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copy session';
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+        
+        // Hydrate save state across the page
+        async function hydrateSaved() {
+            const token = getOrCreateToken();
+            try {
+                const res = await fetch('/api/saved?token=' + token);
+                if (res.ok) {
+                    const { post_ids } = await res.json();
+                    document.querySelectorAll('.save-btn').forEach(btn => {
+                        const id = parseInt(btn.dataset.id);
+                        if (post_ids.includes(id)) {
+                            btn.classList.add('saved');
+                            const icon = btn.querySelector('i');
+                            if (icon) icon.classList.replace('ti-bookmark', 'ti-bookmark-filled');
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to hydrate saved state", e);
+            }
+        }
+        
+        // Save/Unsave function
+        async function toggleSave(btn, postId) {
+            const token = getOrCreateToken();
+            const saved = btn.classList.contains('saved');
+            const method = saved ? 'DELETE' : 'POST';
+            
+            // Optimistic UI update
+            if (saved) {
+                btn.classList.remove('saved');
+                btn.querySelector('i').classList.replace('ti-bookmark-filled', 'ti-bookmark');
+            } else {
+                btn.classList.add('saved');
+                btn.querySelector('i').classList.replace('ti-bookmark', 'ti-bookmark-filled');
+            }
+            btn.classList.remove('animating');
+            void btn.offsetWidth; // trigger reflow
+            btn.classList.add('animating');
+            btn.addEventListener('animationend', () => btn.classList.remove('animating'), { once: true });
+
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                }
+                
+                await fetch('/api/save', {
+                    method,
+                    headers: headers,
+                    body: JSON.stringify({ token, post_id: parseInt(postId) })
+                });
+            } catch (e) {
+                console.error("Failed to save/unsave", e);
+                // Revert UI if failed
+                if (saved) {
+                    btn.classList.add('saved');
+                    btn.querySelector('i').classList.replace('ti-bookmark', 'ti-bookmark-filled');
+                } else {
+                    btn.classList.remove('saved');
+                    btn.querySelector('i').classList.replace('ti-bookmark-filled', 'ti-bookmark');
+                }
+            }
+        }
+        
+        // Modal logic
+        function openModal(btn) {
+            const card = btn.closest('.card');
+            const title = card.querySelector('.card-title').textContent;
+            // The textContent of a line-clamped element retains the full original text.
+            const summary = card.querySelector('.card-summary').textContent;
+            const tagsHtml = card.querySelector('.card-tags').innerHTML;
+            const metaHtml = card.querySelector('.card-footer').innerHTML;
+            
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <h2 style="font-family: var(--font-display); font-size: 32px; color: var(--text); margin-bottom: 16px; letter-spacing: 0.04em; line-height: 1.1; padding-right: 24px;">${title}</h2>
+                <div class="card-tags" style="margin-bottom: 24px;">${tagsHtml}</div>
+                <p style="font-size: 16px; color: var(--text-muted); line-height: 1.6; margin-bottom: 32px;">${summary}</p>
+                <div class="card-footer" style="border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: space-between; align-items: flex-end;">${metaHtml}</div>
+            `;
+            
+            document.getElementById('card-modal').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(e) {
+            if (e && e.target !== e.currentTarget && e.target.closest('.modal-close') === null) return;
+            document.getElementById('card-modal').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function checkReadMore() {
+            document.querySelectorAll('.card-summary').forEach(p => {
+                if (p.scrollHeight > p.clientHeight) {
+                    p.nextElementSibling.style.display = 'inline-block';
+                } else {
+                    p.nextElementSibling.style.display = 'none';
+                }
+            });
+        }
+
+        // Initial token generation and hydration check
+        document.addEventListener('DOMContentLoaded', () => {
+            getOrCreateToken();
+            
+            // If the URL has a token parameter (e.g. from a shared link), save it locally
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+            if (tokenFromUrl && tokenFromUrl.startsWith('sess_')) {
+                localStorage.setItem('ainews_token', tokenFromUrl);
+            }
+            
+            hydrateSaved();
+            setTimeout(checkReadMore, 100);
+            window.addEventListener('resize', checkReadMore);
+        });
+    </script>
+</body>
+</html>

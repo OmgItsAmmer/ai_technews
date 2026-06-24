@@ -1,0 +1,20 @@
+{% extends "frontend/base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 24px;">
+    <h2>Saved Articles</h2>
+    <p style="color: var(--text-muted); font-size: 14px;">Your private, portable library.</p>
+</div>
+
+<div class="grid" id="grid">
+    {% for post in posts %}
+        {% include 'frontend/post_card.html' %}
+    {% else %}
+        <div class="empty-state" style="grid-column: 1 / -1;">
+            <i class="ti ti-bookmark" aria-hidden="true"></i>
+            <p>Nothing saved yet.</p>
+            <a href="/">Back to feed</a>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
