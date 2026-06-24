@@ -1,7 +1,7 @@
 # Makefile for AI News project
 # Supports backend (Django), frontend (Django templates/views), Docker (Redis), Celery, and utility tasks.
 
-.PHONY: help install docker-up docker-down migrate makemigrations backend frontend worker beat shell superuser test clean
+.PHONY: help install docker-up docker-down migrate makemigrations backend frontend worker beat shell superuser test test-ci clean
 
 # Default command: display help
 help:
@@ -28,6 +28,7 @@ help:
 	@echo ""
 	@echo "Testing & Quality:"
 	@echo "  make test            - Run the pytest suite"
+	@echo "  make test-ci         - Run only unit tests with SQLite (mimicking CI)"
 	@echo "  make clean           - Remove python cache and test cache files"
 	@echo ""
 	@echo "Setup:"
@@ -80,6 +81,11 @@ beat:
 # Run test suite
 test:
 	pytest
+
+# Run test suite mimicking the CI/CD pipeline (using in-memory SQLite, skipping integration tests)
+test-ci: export DATABASE_URL = sqlite:///:memory:
+test-ci:
+	pytest -m "not integration"
 
 # Clean up Python cache, build files, and testing cache
 clean:

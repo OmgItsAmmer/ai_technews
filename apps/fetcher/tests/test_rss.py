@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from apps.fetcher.rss import FeedEntry, fetch_rss
@@ -29,7 +29,7 @@ def test_fetch_rss_returns_feed_entries(mock_parse):
     assert entries[0] == FeedEntry(
         link="https://example.com/post-1",
         title="First Post",
-        published_at=datetime(2024, 1, 1, 12, 0, 0),
+        published_at=datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
         summary="Short summary",
     )
 
