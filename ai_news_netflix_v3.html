@@ -1,0 +1,520 @@
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #141414;
+  --surface: #1a1a1a;
+  --surface2: #212121;
+  --nav: #0a0a0a;
+  --red: #E50914;
+  --red-dim: rgba(229,9,20,0.14);
+  --border: rgba(255,255,255,0.07);
+  --border-hover: rgba(255,255,255,0.18);
+  --text: #ffffff;
+  --text-muted: rgba(255,255,255,0.45);
+  --text-dim: rgba(255,255,255,0.22);
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.wrap {
+  background: var(--bg);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: var(--font-body);
+  min-height: 600px;
+}
+
+.nav {
+  background: var(--nav);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 0.5px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.logo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--red);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.nav-links { display: flex; gap: 16px; }
+.nav-links a {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--text); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: var(--font-body);
+  color: var(--text-muted);
+  background: transparent;
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.nav-btn:hover { border-color: var(--border-hover); color: var(--text); }
+.nav-btn i { font-size: 14px; }
+.nav-btn.copied { color: var(--red); border-color: var(--red); }
+
+.body { padding: 16px 20px; }
+
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.search-wrap { position: relative; flex: 1; }
+.search-wrap i {
+  position: absolute;
+  left: 10px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.search-wrap input {
+  width: 100%;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px 8px 32px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-wrap input::placeholder { color: var(--text-dim); }
+.search-wrap input:focus { border-color: var(--border-hover); }
+
+.sort-wrap { position: relative; flex-shrink: 0; }
+.sort-icon-btn {
+  width: 36px; height: 36px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 17px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.sort-icon-btn:hover, .sort-icon-btn.open { border-color: var(--border-hover); color: var(--text); }
+
+.sort-menu {
+  display: none;
+  position: absolute;
+  right: 0; top: calc(100% + 6px);
+  background: #252525;
+  border: 0.5px solid var(--border-hover);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 20;
+  min-width: 160px;
+}
+.sort-menu.open { display: block; }
+.sort-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  border-bottom: 0.5px solid var(--border);
+}
+.sort-option:last-child { border-bottom: none; }
+.sort-option:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.sort-option.active { color: var(--red); }
+.sort-option i { font-size: 15px; }
+
+.tag-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.tag-chip {
+  font-size: 11px;
+  font-family: var(--font-body);
+  padding: 4px 12px;
+  border-radius: 99px;
+  border: 0.5px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.tag-chip:hover { border-color: var(--border-hover); color: var(--text); }
+.tag-chip.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s ease;
+  cursor: default;
+}
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.save-btn {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 0.5px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 15px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.save-btn:hover { border-color: var(--red); color: var(--red); }
+.save-btn.saved {
+  border-color: var(--red);
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+@keyframes save-pulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.4); }
+  70%  { transform: scale(0.88); }
+  100% { transform: scale(1); }
+}
+.save-btn.animating i { animation: save-pulse 0.32s ease forwards; }
+
+.card-summary {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.card-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.card-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text-dim);
+}
+
+.card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 9px;
+  border-top: 0.5px solid var(--border);
+  margin-top: auto;
+}
+.card-meta { display: flex; flex-direction: column; gap: 2px; }
+.card-author { font-size: 11px; color: var(--text-muted); }
+.card-source { font-size: 10px; color: var(--text-dim); }
+.card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.card-date { font-size: 10px; color: var(--text-dim); }
+.read-link {
+  font-size: 11px;
+  color: var(--red);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.read-link:hover { opacity: 0.75; }
+</style>
+
+<h2 class="sr-only">Netflix-themed AI News feed — full-width responsive grid with lift-on-hover cards, icon sort menu, and session token copy</h2>
+
+<div class="wrap">
+  <nav class="nav">
+    <span class="logo">AI News</span>
+    <div class="nav-links">
+      <a class="active">Feed</a>
+      <a>Sources</a>
+    </div>
+    <div class="nav-right">
+      <button class="nav-btn" id="copy-btn" onclick="copyToken()">
+        <i class="ti ti-copy" aria-hidden="true"></i>
+        Copy session
+      </button>
+      <button class="nav-btn" onclick="goSaved()">
+        <i class="ti ti-bookmark" aria-hidden="true"></i>
+        Saved
+      </button>
+    </div>
+  </nav>
+
+  <div class="body">
+    <div class="controls">
+      <div class="search-wrap">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="text" placeholder="Search articles..." id="search-in" oninput="applyFilters()">
+      </div>
+      <div class="sort-wrap">
+        <button class="sort-icon-btn" id="sort-btn" onclick="toggleSortMenu()" aria-label="Sort options">
+          <i class="ti ti-arrows-sort" aria-hidden="true"></i>
+        </button>
+        <div class="sort-menu" id="sort-menu">
+          <div class="sort-option active" id="opt-newest" onclick="selectSort('newest')">
+            <i class="ti ti-arrow-down" aria-hidden="true"></i> Newest first
+          </div>
+          <div class="sort-option" id="opt-oldest" onclick="selectSort('oldest')">
+            <i class="ti ti-arrow-up" aria-hidden="true"></i> Oldest first
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tag-row">
+      <span class="tag-chip active" onclick="setTag(this,'all')">All</span>
+      <span class="tag-chip" onclick="setTag(this,'GPT-4o')">GPT-4o</span>
+      <span class="tag-chip" onclick="setTag(this,'Benchmarks')">Benchmarks</span>
+      <span class="tag-chip" onclick="setTag(this,'Policy')">Policy</span>
+      <span class="tag-chip" onclick="setTag(this,'Training')">Training</span>
+      <span class="tag-chip" onclick="setTag(this,'Gemini')">Gemini</span>
+      <span class="tag-chip" onclick="setTag(this,'API')">API</span>
+    </div>
+
+    <div class="grid" id="grid">
+      <div class="card" data-id="1" data-tags="GPT-4o,API,OpenAI" data-date="2026-06-18">
+        <div class="card-top">
+          <div class="card-title">GPT-4o mini system card and API access released to all tiers</div>
+          <button class="save-btn" onclick="toggleSave(this,'1')" aria-label="Save article"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="card-summary">OpenAI releases full safety evaluation and API access for GPT-4o mini, targeting developers who need low-latency responses at reduced cost.</div>
+        <div class="card-tags"><span class="card-tag">GPT-4o</span><span class="card-tag">API</span><span class="card-tag">OpenAI</span></div>
+        <div class="card-footer">
+          <div class="card-meta"><span class="card-author">Sam Altman</span><span class="card-source">OpenAI</span></div>
+          <div class="card-right"><span class="card-date">Jun 18, 2026</span><span class="read-link">Read →</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-id="2" data-tags="Gemini,Benchmarks,DeepMind" data-date="2026-06-17">
+        <div class="card-top">
+          <div class="card-title">Gemini 2.5 Pro achieves new SOTA on long-context reasoning benchmarks</div>
+          <button class="save-btn" onclick="toggleSave(this,'2')" aria-label="Save article"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="card-summary">DeepMind publishes results showing Gemini 2.5 Pro outperforming all prior models on RULER and HELMET long-context evaluation suites.</div>
+        <div class="card-tags"><span class="card-tag">Gemini</span><span class="card-tag">Benchmarks</span><span class="card-tag">DeepMind</span></div>
+        <div class="card-footer">
+          <div class="card-meta"><span class="card-author">Sundar Pichai</span><span class="card-source">DeepMind</span></div>
+          <div class="card-right"><span class="card-date">Jun 17, 2026</span><span class="read-link">Read →</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-id="3" data-tags="Policy,EU AI Act,Regulation" data-date="2026-06-16">
+        <div class="card-top">
+          <div class="card-title">EU AI Act enforcement begins: what it means for US companies shipping in Europe</div>
+          <button class="save-btn" onclick="toggleSave(this,'3')" aria-label="Save article"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="card-summary">As the EU AI Act moves into its first enforcement phase, American AI firms face compliance deadlines and fines for high-risk system deployments.</div>
+        <div class="card-tags"><span class="card-tag">Policy</span><span class="card-tag">EU AI Act</span><span class="card-tag">Regulation</span></div>
+        <div class="card-footer">
+          <div class="card-meta"><span class="card-author">Nilay Patel</span><span class="card-source">The Verge</span></div>
+          <div class="card-right"><span class="card-date">Jun 16, 2026</span><span class="read-link">Read →</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-id="4" data-tags="Training,SmolLM,Hugging Face" data-date="2026-06-15">
+        <div class="card-top">
+          <div class="card-title">SmolLM3: training small models that punch above their weight class</div>
+          <button class="save-btn" onclick="toggleSave(this,'4')" aria-label="Save article"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="card-summary">The Hugging Face team details their training recipe for SmolLM3, showing careful data curation beats raw compute scaling at sub-3B parameters.</div>
+        <div class="card-tags"><span class="card-tag">Training</span><span class="card-tag">SmolLM</span><span class="card-tag">Hugging Face</span></div>
+        <div class="card-footer">
+          <div class="card-meta"><span class="card-author">Thomas Wolf</span><span class="card-source">Hugging Face</span></div>
+          <div class="card-right"><span class="card-date">Jun 15, 2026</span><span class="read-link">Read →</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-id="5" data-tags="API,Anthropic,Safety" data-date="2026-06-14">
+        <div class="card-top">
+          <div class="card-title">Claude 4 system card: how Anthropic evaluated for autonomous risk</div>
+          <button class="save-btn" onclick="toggleSave(this,'5')" aria-label="Save article"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="card-summary">Anthropic publishes a detailed system card for Claude 4 covering uplift evaluations, alignment techniques, and frontier safety commitments.</div>
+        <div class="card-tags"><span class="card-tag">Anthropic</span><span class="card-tag">Safety</span><span class="card-tag">API</span></div>
+        <div class="card-footer">
+          <div class="card-meta"><span class="card-author">Dario Amodei</span><span class="card-source">Anthropic</span></div>
+          <div class="card-right"><span class="card-date">Jun 14, 2026</span><span class="read-link">Read →</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-id="6" data-tags="Training,Research,Meta" data-date="2026-06-13">
+        <div class="card-top">
+          <div class="card-title">Llama 4 Scout: Meta's case for mixture-of-experts at consumer scale</div>
+          <button class="save-btn" onclick="toggleSave(this,'6')" aria-label="Save article"><i class="ti ti-bookmark" aria-hidden="true"></i></button>
+        </div>
+        <div class="card-summary">Meta releases the full technical report for Llama 4 Scout, detailing how sparse MoE routing enables frontier-class reasoning on a single H100.</div>
+        <div class="card-tags"><span class="card-tag">Llama</span><span class="card-tag">MoE</span><span class="card-tag">Meta</span></div>
+        <div class="card-footer">
+          <div class="card-meta"><span class="card-author">Yann LeCun</span><span class="card-source">Meta AI</span></div>
+          <div class="card-right"><span class="card-date">Jun 13, 2026</span><span class="read-link">Read →</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_KEY = 'ainews_saved';
+const TOKEN_KEY = 'ainews_token';
+let activeTag = 'all';
+let sortOrder = 'newest';
+
+function getOrCreateToken() {
+  let t = localStorage.getItem(TOKEN_KEY);
+  if (!t) {
+    t = 'sess_' + Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10);
+    localStorage.setItem(TOKEN_KEY, t);
+  }
+  return t;
+}
+
+function getSaved() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; }
+}
+function setSaved(arr) { localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+
+function hydrate() {
+  getOrCreateToken();
+  const saved = getSaved();
+  document.querySelectorAll('.save-btn').forEach(btn => {
+    const id = btn.closest('.card').dataset.id;
+    if (saved.includes(id)) btn.classList.add('saved');
+  });
+}
+
+function toggleSave(btn, id) {
+  const saved = getSaved();
+  if (saved.includes(id)) {
+    setSaved(saved.filter(x => x !== id));
+    btn.classList.remove('saved');
+  } else {
+    setSaved([...saved, id]);
+    btn.classList.add('saved');
+  }
+  btn.classList.remove('animating');
+  void btn.offsetWidth;
+  btn.classList.add('animating');
+  btn.addEventListener('animationend', () => btn.classList.remove('animating'), { once: true });
+}
+
+function setTag(el, tag) {
+  activeTag = tag;
+  document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = (document.getElementById('search-in').value || '').toLowerCase();
+  document.querySelectorAll('.card').forEach(card => {
+    const tags = card.dataset.tags.toLowerCase();
+    const title = card.querySelector('.card-title').textContent.toLowerCase();
+    const summary = card.querySelector('.card-summary').textContent.toLowerCase();
+    const tagOk = activeTag === 'all' || tags.includes(activeTag.toLowerCase());
+    const searchOk = !q || title.includes(q) || summary.includes(q) || tags.includes(q);
+    card.style.display = (tagOk && searchOk) ? '' : 'none';
+  });
+}
+
+function toggleSortMenu() {
+  const menu = document.getElementById('sort-menu');
+  const btn = document.getElementById('sort-btn');
+  const open = menu.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+function selectSort(order) {
+  sortOrder = order;
+  document.getElementById('opt-newest').classList.toggle('active', order === 'newest');
+  document.getElementById('opt-oldest').classList.toggle('active', order === 'oldest');
+  document.getElementById('sort-menu').classList.remove('open');
+  document.getElementById('sort-btn').classList.remove('open');
+  const grid = document.getElementById('grid');
+  const cards = [...grid.querySelectorAll('.card')];
+  cards.sort((a, b) => {
+    const da = new Date(a.dataset.date), db = new Date(b.dataset.date);
+    return order === 'newest' ? db - da : da - db;
+  });
+  cards.forEach(c => grid.appendChild(c));
+}
+
+function copyToken() {
+  const token = getOrCreateToken();
+  const url = window.location.origin + '/saved?token=' + token;
+  navigator.clipboard.writeText(url).catch(() => {});
+  const btn = document.getElementById('copy-btn');
+  btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+  btn.classList.add('copied');
+  setTimeout(() => {
+    btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copy session';
+    btn.classList.remove('copied');
+  }, 2000);
+}
+
+function goSaved() {}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.sort-wrap')) {
+    document.getElementById('sort-menu').classList.remove('open');
+    document.getElementById('sort-btn').classList.remove('open');
+  }
+});
+
+hydrate();
+</script>
