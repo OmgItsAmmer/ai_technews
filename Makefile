@@ -42,6 +42,8 @@ install:
 docker-up:
 	docker-compose up -d
 
+up: docker-up
+
 # Stop Docker containers
 docker-down:
 	docker-compose down

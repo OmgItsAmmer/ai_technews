@@ -1,4 +1,4 @@
-# ⚡ RAPID NEWS
+# ⚡ ANTIX NEWS
 
 [![Python 3.12](https://img.shields.io/badge/python-3.12+-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Django 5.x](https://img.shields.io/badge/django-%23092E20.svg?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
@@ -6,7 +6,7 @@
 [![Celery](https://img.shields.io/badge/Celery-37814A?style=for-the-badge&logo=celery&logoColor=white)](https://docs.celeryq.dev/)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-**RAPID NEWS** is an automated, AI-driven technology and machine learning news aggregation platform. It orchestrates background scraping, deduplicates incoming articles, extracts full content, and leverages advanced Large Language Models (LLMs) to synthesize structured metadata and concise summaries—all served through a high-performance web interface.
+**ANTIX NEWS** is an automated, AI-driven technology and machine learning news aggregation platform. It orchestrates background scraping, deduplicates incoming articles, extracts full content, and leverages advanced Large Language Models (LLMs) to synthesize structured metadata and concise summaries—all served through a high-performance web interface.
 
 ---
 
@@ -44,7 +44,7 @@ graph TD
 
 ## 🛠️ Quick Setup & Installation
 
-Get your local copy of **RAPID NEWS** up and running in a few simple steps.
+Get your local copy of **ANTIX NEWS** up and running in a few simple steps.
 
 ### Prerequisites
 Make sure you have the following installed on your machine:
