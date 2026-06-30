@@ -3,3 +3,5 @@
 __pycache__/
 *.pyc
 celerybeat-schedule*
+staticfiles/
+db.sqlite3

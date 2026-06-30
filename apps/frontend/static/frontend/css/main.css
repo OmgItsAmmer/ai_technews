@@ -241,6 +241,8 @@ button {
 
 /* Card */
 .card {
+  position: relative;
+  overflow: hidden;
   background: var(--surface);
   border: 0.5px solid var(--border);
   border-radius: 12px;
@@ -249,6 +251,18 @@ button {
   flex-direction: column;
   gap: 12px;
   transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s ease;
+}
+
+.featured-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--red);
+  color: #ffffff;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .card:hover {
   transform: translateY(-4px);
@@ -455,3 +469,38 @@ button {
   z-index: 10;
 }
 .modal-close:hover { background: rgba(255,255,255,0.1); color: var(--text); transform: rotate(90deg); }
+
+/* Custom Checkbox Styling */
+.custom-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #212121 !important; /* greyish black background */
+  border: 1px solid var(--border) !important;
+  border-radius: 4px;
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.15s, border-color 0.15s;
+  position: relative;
+}
+
+.custom-checkbox:checked {
+  background-color: var(--red) !important;
+  border-color: var(--red) !important;
+}
+
+.custom-checkbox:checked::after {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+

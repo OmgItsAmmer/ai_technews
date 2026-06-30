@@ -7,7 +7,30 @@ from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import SavedPost
-from apps.posts.models import Post
+from apps.posts.models import Post, KeywordSetting
+
+
+def annotate_matched_keywords(posts):
+    setting = KeywordSetting.objects.first()
+    keywords = [k.strip() for k in setting.keywords.split(",") if k.strip()] if setting else []
+    
+    if not keywords:
+        for post in posts:
+            post.matched_keyword = None
+        return
+        
+    for post in posts:
+        post.matched_keyword = None
+        title = (post.title or "").lower()
+        summary = (post.summary or "").lower()
+        raw = (post.raw_content or "").lower()
+        tags_str = " ".join(post.tags or []).lower()
+        for kw in keywords:
+            kw_lower = kw.lower()
+            if kw_lower in title or kw_lower in summary or kw_lower in raw or kw_lower in tags_str:
+                post.matched_keyword = kw
+                break
+
 
 def get_all_tags():
     # Retrieve all unique tags from approved posts
@@ -48,13 +71,52 @@ def feed_view(request):
     if end_date:
         queryset = queryset.filter(sort_date__date__lte=end_date)
 
-    if sort == 'newest':
-        queryset = queryset.order_by('-sort_date')
+    featured = request.GET.get('featured', '') == '1'
+    setting = KeywordSetting.objects.first()
+    keywords = [k.strip() for k in setting.keywords.split(",") if k.strip()] if setting else []
+
+    if featured and keywords:
+        from django.db.models import Case, When, Value, BooleanField
+        keyword_q = Q()
+        for kw in keywords:
+            keyword_q |= Q(title__icontains=kw) | Q(summary__icontains=kw) | Q(raw_content__icontains=kw)
+        queryset = queryset.annotate(
+            is_featured=Case(
+                When(keyword_q, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField()
+            )
+        )
+        if sort == 'newest':
+            queryset = queryset.order_by('-is_featured', '-sort_date')
+        else:
+            queryset = queryset.order_by('-is_featured', 'sort_date')
     else:
-        queryset = queryset.order_by('sort_date')
+        if sort == 'newest':
+            queryset = queryset.order_by('-sort_date')
+        else:
+            queryset = queryset.order_by('sort_date')
 
     paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(page_num)
+    
+    posts = list(page_obj.object_list)
+    # Reuse setting and keywords to avoid double DB queries
+    if keywords:
+        for post in posts:
+            post.matched_keyword = None
+            title = (post.title or "").lower()
+            summary = (post.summary or "").lower()
+            raw = (post.raw_content or "").lower()
+            tags_str = " ".join(post.tags or []).lower()
+            for kw in keywords:
+                kw_lower = kw.lower()
+                if kw_lower in title or kw_lower in summary or kw_lower in raw or kw_lower in tags_str:
+                    post.matched_keyword = kw
+                    break
+    else:
+        for post in posts:
+            post.matched_keyword = None
     
     all_tags = get_all_tags()
     
@@ -64,7 +126,7 @@ def feed_view(request):
     all_sources = Source.objects.filter(name__in=seeded_names).order_by('name')
 
     context = {
-        'posts': page_obj.object_list,
+        'posts': posts,
         'page': page_num,
         'total_pages': paginator.num_pages,
         'all_tags': all_tags,
@@ -75,6 +137,7 @@ def feed_view(request):
         'active_source': source_id,
         'active_start_date': start_date,
         'active_end_date': end_date,
+        'active_featured': featured,
         'active_page': 'feed'
     }
     
@@ -100,7 +163,8 @@ def saved_view(request):
             queryset = Post.objects.filter(id__in=saved_ids, status='approved')
             if q:
                 queryset = queryset.filter(Q(title__icontains=q) | Q(summary__icontains=q))
-            posts = queryset.order_by('-published_at', '-fetched_at')
+            posts = list(queryset.order_by('-published_at', '-fetched_at'))
+            annotate_matched_keywords(posts)
 
     context = {
         'posts': posts,
