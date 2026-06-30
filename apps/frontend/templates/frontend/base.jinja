@@ -85,12 +85,43 @@
             <button id="copy-btn" class="icon-btn" onclick="copyToken()">
                 <i class="ti ti-copy" aria-hidden="true"></i> Copy session
             </button>
+            <button id="chat-btn" class="icon-btn ai-btn" onclick="toggleChatPanel()" aria-label="Ask AI" aria-expanded="false">
+                <i class="ti ti-sparkles" aria-hidden="true"></i> Ask AI
+            </button>
         </div>
     </nav>
 
     <main class="container">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- AI Chat Panel -->
+    <div id="chat-backdrop" class="chat-backdrop" onclick="closeChatPanel()" aria-hidden="true"></div>
+    <aside id="chat-panel" class="chat-panel" role="dialog" aria-label="Ask AI" aria-modal="true">
+        <div class="chat-panel-header">
+            <div class="chat-panel-title">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>
+                Ask AI
+            </div>
+            <button type="button" class="chat-panel-close" onclick="closeChatPanel()" aria-label="Close chat">
+                <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+            <div class="chat-empty" id="chat-empty">
+                <i class="ti ti-message-chatbot" aria-hidden="true"></i>
+                Ask about recent AI news. I'll cite articles from the feed.
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <div class="chat-input-wrap">
+                <textarea id="chat-input" class="chat-input" rows="1" placeholder="Ask a question…" aria-label="Chat message"></textarea>
+            </div>
+            <button type="button" id="chat-send-btn" class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send message" disabled>
+                <i class="ti ti-arrow-up" aria-hidden="true"></i>
+            </button>
+        </div>
+    </aside>
 
     <!-- Modal Popup -->
     <div id="card-modal" class="modal-overlay" onclick="closeModal(event)">
@@ -359,6 +390,25 @@
                 resizeTimer = setTimeout(refreshCardTagUI, 150);
             });
             if (typeof observeCards === 'function') observeCards();
+
+            const chatInput = document.getElementById('chat-input');
+            const chatSendBtn = document.getElementById('chat-send-btn');
+            if (chatInput) {
+                chatInput.addEventListener('input', () => {
+                    chatInput.style.height = 'auto';
+                    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+                    chatSendBtn.disabled = !chatInput.value.trim() || chatLoading;
+                });
+                chatInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendChatMessage();
+                    }
+                });
+            }
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && chatPanelOpen) closeChatPanel();
+            });
         });
 
         async function fetchLatestNews() {
@@ -442,6 +492,186 @@
             document.querySelectorAll('.card').forEach(card => {
                 cardObserver.observe(card);
             });
+        }
+
+        // ── AI Chat Panel ──
+        const chatPageSessionId = crypto.randomUUID();
+        let chatPanelOpen = false;
+        let chatLoading = false;
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderAnswerWithCitations(content, citations) {
+            let html = escapeHtml(content);
+            const urlByRef = {};
+            (citations || []).forEach(c => { urlByRef[c.ref] = c.url; });
+
+            html = html.replace(/\[(\d+)\]/g, (match, num) => {
+                const ref = parseInt(num, 10);
+                const url = urlByRef[ref];
+                if (!url) return match;
+                return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="chat-cite-ref">[${ref}]</a>`;
+            });
+            return html;
+        }
+
+        function renderCitationsList(citations) {
+            if (!citations || !citations.length) return '';
+            const items = citations.map(c => `
+                <a href="${escapeHtml(c.url)}" target="_blank" rel="noopener noreferrer" class="chat-source-link">
+                    <span class="chat-source-ref">[${c.ref}]</span>
+                    <span>
+                        <div class="chat-source-title">${escapeHtml(c.title)}</div>
+                        <div class="chat-source-meta">${escapeHtml(c.source_name)}</div>
+                    </span>
+                </a>
+            `).join('');
+            return `<div class="chat-sources"><div class="chat-sources-label">Sources</div>${items}</div>`;
+        }
+
+        function renderChatMessage(msg) {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${msg.role}`;
+
+            if (msg.role === 'assistant') {
+                bubble.innerHTML = renderAnswerWithCitations(msg.content, msg.citations) + renderCitationsList(msg.citations);
+            } else {
+                bubble.textContent = msg.content;
+            }
+            return bubble;
+        }
+
+        function renderAllChatMessages(messages) {
+            const container = document.getElementById('chat-messages');
+            const empty = document.getElementById('chat-empty');
+            container.querySelectorAll('.chat-bubble, .chat-typing').forEach(el => el.remove());
+
+            if (!messages.length) {
+                if (empty) empty.style.display = '';
+                return;
+            }
+            if (empty) empty.style.display = 'none';
+            messages.forEach(msg => container.appendChild(renderChatMessage(msg)));
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showChatTyping() {
+            const container = document.getElementById('chat-messages');
+            const empty = document.getElementById('chat-empty');
+            if (empty) empty.style.display = 'none';
+            const typing = document.createElement('div');
+            typing.className = 'chat-typing';
+            typing.id = 'chat-typing';
+            typing.innerHTML = '<span></span><span></span><span></span>';
+            container.appendChild(typing);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideChatTyping() {
+            document.getElementById('chat-typing')?.remove();
+        }
+
+        async function loadChatHistory() {
+            try {
+                const res = await fetch(
+                    `/api/chat/history?session_token=${encodeURIComponent(getOrCreateToken())}&page_session_id=${encodeURIComponent(chatPageSessionId)}`
+                );
+                if (!res.ok) return;
+                const data = await res.json();
+                renderAllChatMessages(data.messages || []);
+            } catch (e) {
+                console.error('Failed to load chat history', e);
+            }
+        }
+
+        async function sendChatMessage() {
+            if (chatLoading) return;
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            chatLoading = true;
+            document.getElementById('chat-send-btn').disabled = true;
+            input.disabled = true;
+
+            const container = document.getElementById('chat-messages');
+            const empty = document.getElementById('chat-empty');
+            if (empty) empty.style.display = 'none';
+            container.appendChild(renderChatMessage({ role: 'user', content: message }));
+            input.value = '';
+            input.style.height = 'auto';
+            showChatTyping();
+            container.scrollTop = container.scrollHeight;
+
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        session_token: getOrCreateToken(),
+                        page_session_id: chatPageSessionId,
+                        message,
+                    }),
+                });
+
+                hideChatTyping();
+
+                if (!res.ok) {
+                    const err = document.createElement('div');
+                    err.className = 'chat-bubble error';
+                    err.textContent = 'Something went wrong. Please try again.';
+                    container.appendChild(err);
+                } else {
+                    const data = await res.json();
+                    renderAllChatMessages(data.messages || []);
+                }
+            } catch (e) {
+                hideChatTyping();
+                console.error('Chat error', e);
+                const err = document.createElement('div');
+                err.className = 'chat-bubble error';
+                err.textContent = 'Something went wrong. Please try again.';
+                container.appendChild(err);
+            } finally {
+                chatLoading = false;
+                input.disabled = false;
+                document.getElementById('chat-send-btn').disabled = !input.value.trim();
+                input.focus();
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function openChatPanel() {
+            chatPanelOpen = true;
+            document.getElementById('chat-panel').classList.add('open');
+            document.getElementById('chat-backdrop').classList.add('open');
+            document.getElementById('chat-btn').classList.add('active');
+            document.getElementById('chat-btn').setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+            loadChatHistory();
+            setTimeout(() => document.getElementById('chat-input').focus(), 320);
+        }
+
+        function closeChatPanel() {
+            chatPanelOpen = false;
+            document.getElementById('chat-panel').classList.remove('open');
+            document.getElementById('chat-backdrop').classList.remove('open');
+            document.getElementById('chat-btn').classList.remove('active');
+            document.getElementById('chat-btn').setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+        }
+
+        function toggleChatPanel() {
+            if (chatPanelOpen) closeChatPanel();
+            else openChatPanel();
         }
     </script>
 </body>
