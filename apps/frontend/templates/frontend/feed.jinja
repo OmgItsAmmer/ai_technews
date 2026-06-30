@@ -161,6 +161,11 @@
                     <option value="oldest" {% if active_sort == 'oldest' %}selected{% endif %}>Oldest first</option>
                 </select>
             </div>
+
+            <div class="filter-group-checkbox" style="display: flex; align-items: center; gap: 10px; margin-top: 8px; margin-bottom: 8px;">
+                <input type="checkbox" id="filter-featured" {% if active_featured %}checked{% endif %} onchange="onFeaturedChange()" class="custom-checkbox">
+                <label for="filter-featured" style="text-transform: none; font-size: 13px; color: var(--text); cursor: pointer; letter-spacing: normal; user-select: none; margin: 0; font-weight: normal;">Show featured on the top</label>
+            </div>
             
             <button class="clear-filters-btn" onclick="clearAllFilters()">Clear Filters</button>
         </div>
@@ -169,10 +174,10 @@
 
 <div class="pagination" id="pagination-controls">
     {% if page > 1 %}
-      <a href="/?page={{ page - 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}&source={{ active_source }}&start_date={{ active_start_date }}&end_date={{ active_end_date }}">← Previous</a>
+      <a href="/?page={{ page - 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}&source={{ active_source }}&start_date={{ active_start_date }}&end_date={{ active_end_date }}&featured={% if active_featured %}1{% endif %}">← Previous</a>
     {% endif %}
     {% if page < total_pages %}
-      <a href="/?page={{ page + 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}&source={{ active_source }}&start_date={{ active_start_date }}&end_date={{ active_end_date }}">Next →</a>
+      <a href="/?page={{ page + 1 }}&q={{ active_q }}&sort={{ active_sort }}&tag={{ active_tag }}&source={{ active_source }}&start_date={{ active_start_date }}&end_date={{ active_end_date }}&featured={% if active_featured %}1{% endif %}">Next →</a>
     {% endif %}
 </div>
 
@@ -183,6 +188,7 @@ let activeSort = '{{ active_sort or "newest" }}';
 let activeSource = '{{ active_source or "" }}';
 let activeStartDate = '{{ active_start_date or "" }}';
 let activeEndDate = '{{ active_end_date or "" }}';
+let activeFeatured = '{% if active_featured %}1{% else %}0{% endif %}';
 let currentPage = {{ page }};
 let totalPages = {{ total_pages }};
 let isLoading = false;
@@ -231,6 +237,12 @@ function onDateChange() {
     reloadFeed();
 }
 
+function onFeaturedChange() {
+    activeFeatured = document.getElementById('filter-featured').checked ? '1' : '0';
+    history.replaceState(null, '', updateQueryParam('featured', activeFeatured === '1' ? '1' : ''));
+    reloadFeed();
+}
+
 function clearAllFilters() {
     activeSource = '';
     activeStartDate = '';
@@ -238,11 +250,14 @@ function clearAllFilters() {
     activeQ = '';
     activeTag = '';
     activeSort = 'newest';
+    activeFeatured = '0';
     
     document.getElementById('filter-source').value = '';
     document.getElementById('filter-start-date').value = '';
     document.getElementById('filter-end-date').value = '';
     document.getElementById('filter-sort').value = 'newest';
+    const featuredCheckbox = document.getElementById('filter-featured');
+    if (featuredCheckbox) featuredCheckbox.checked = false;
     const headerSearch = document.getElementById('search-in');
     if (headerSearch) headerSearch.value = '';
     
@@ -258,6 +273,7 @@ function clearAllFilters() {
     url.searchParams.delete('q');
     url.searchParams.delete('tag');
     url.searchParams.delete('sort');
+    url.searchParams.delete('featured');
     history.replaceState(null, '', url.pathname + url.search);
     
     reloadFeed();
@@ -286,7 +302,7 @@ function reloadFeed() {
     const grid = document.getElementById('grid');
     grid.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: var(--text-muted);"><p>Loading articles...</p></div>';
     
-    const url = `/?page=1&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&ajax=1`;
+    const url = `/?page=1&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&featured=${activeFeatured}&ajax=1`;
     
     return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => res.json())

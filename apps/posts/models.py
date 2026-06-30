@@ -53,3 +53,19 @@ class Post(models.Model):
         if self.original_url and not self.url_hash:
             self.url_hash = compute_url_hash(self.original_url)
         super().save(*args, **kwargs)
+
+
+class KeywordSetting(models.Model):
+    keywords = models.TextField(
+        help_text="Enter up to 10 comma-separated keywords.",
+        blank=True,
+        default=""
+    )
+
+    class Meta:
+        verbose_name = "Keyword Settings"
+        verbose_name_plural = "Keyword Settings"
+
+    def __str__(self):
+        return "Keyword Settings"
+
