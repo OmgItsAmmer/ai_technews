@@ -28,6 +28,14 @@ class KeywordSettingAdmin(admin.ModelAdmin):
             return False
         return True
 
+    def add_view(self, request, form_url="", extra_context=None):
+        if KeywordSetting.objects.exists():
+            from django.shortcuts import redirect
+            from django.urls import reverse
+            obj = KeywordSetting.objects.first()
+            return redirect(reverse("admin:posts_keywordsetting_change", args=[obj.pk]))
+        return super().add_view(request, form_url, extra_context)
+
     def has_delete_permission(self, request, obj=None):
         return False
 
