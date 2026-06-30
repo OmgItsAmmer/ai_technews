@@ -277,6 +277,7 @@
             setTimeout(checkReadMore, 100);
             window.addEventListener('resize', checkReadMore);
             if (typeof observeCards === 'function') observeCards();
+            if (typeof applyHighlightsAndTagColors === 'function') applyHighlightsAndTagColors();
         });
 
         async function fetchLatestNews() {

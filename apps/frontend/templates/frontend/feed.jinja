@@ -17,6 +17,7 @@
   flex-shrink: 0;
   position: sticky;
   top: 80px;
+  margin-top: 93px; /* offset = tag-row height (chip ~26px) + margin-bottom (24px) */
 }
 
 /* Filter Card Styling */
@@ -186,6 +187,7 @@ let activeEndDate = '{{ active_end_date or "" }}';
 let currentPage = {{ page }};
 let totalPages = {{ total_pages }};
 let isLoading = false;
+let feedGeneration = 0; // incremented on every reloadFeed(); stale fetchNextPage responses are discarded
 
 // Progressive enhancement: hide traditional pagination
 const paginationControls = document.getElementById('pagination-controls');
@@ -281,6 +283,7 @@ function onSearchInput() {
 const debouncedReload = debounce(reloadFeed, 300);
 
 function reloadFeed() {
+    const gen = ++feedGeneration; // stamp this reload
     currentPage = 1;
     isLoading = true;
     const grid = document.getElementById('grid');
@@ -291,6 +294,7 @@ function reloadFeed() {
     return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => res.json())
         .then(data => {
+            if (gen !== feedGeneration) return; // a newer reload fired — discard this response
             totalPages = data.total_pages;
             currentPage = data.page;
             grid.innerHTML = data.html || '<div class="empty-state"><p>No articles match your filters.</p></div>';
@@ -299,6 +303,7 @@ function reloadFeed() {
             if (typeof hydrateSaved === 'function') hydrateSaved();
             if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
             if (typeof observeCards === 'function') observeCards();
+            applyHighlightsAndTagColors();
             
             // Re-observe sentinel if there are pages left
             if (currentPage < totalPages) {
@@ -309,6 +314,7 @@ function reloadFeed() {
             isLoading = false;
         })
         .catch(err => {
+            if (gen !== feedGeneration) return;
             console.error('Error reloading feed:', err);
             grid.innerHTML = '<div class="error-state"><p>Failed to load articles. Please try again.</p></div>';
             isLoading = false;
@@ -318,6 +324,7 @@ function reloadFeed() {
 function fetchNextPage() {
     if (isLoading || currentPage >= totalPages) return;
     isLoading = true;
+    const gen = feedGeneration; // capture — if reloadFeed() fires before this resolves, discard
     
     const nextPage = currentPage + 1;
     const url = `/?page=${nextPage}&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&ajax=1`;
@@ -335,6 +342,7 @@ function fetchNextPage() {
         .then(res => res.json())
         .then(data => {
             document.getElementById('lazy-loader-spinner')?.remove();
+            if (gen !== feedGeneration) return; // reloadFeed() fired while we were waiting — discard
             totalPages = data.total_pages;
             currentPage = data.page;
             
@@ -346,6 +354,7 @@ function fetchNextPage() {
                 if (typeof hydrateSaved === 'function') hydrateSaved();
                 if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
                 if (typeof observeCards === 'function') observeCards();
+                applyHighlightsAndTagColors();
             }
             
             if (currentPage >= totalPages) {
@@ -378,6 +387,64 @@ if (sentinel) {
 const searchInput = document.getElementById('search-in');
 if (searchInput) {
     searchInput.addEventListener('input', onSearchInput);
+}
+
+// ── Highlight + tag-color utilities ──
+function highlightText(rawText, query) {
+    if (!query) return rawText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    const escaped = rawText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    const words = query.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return escaped;
+
+    const pattern = words
+        .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('|');
+
+    return escaped.replace(
+        new RegExp(`(${pattern})`, 'gi'),
+        '<span class="highlight">$1</span>'
+    );
+}
+
+function applyHighlightsAndTagColors() {
+    const q   = activeQ || '';
+    const tag = (typeof activeTag !== 'undefined' ? activeTag : '').toLowerCase();
+
+    document.querySelectorAll('.card').forEach(card => {
+        // ── Keyword highlighting ──
+        const titleEl   = card.querySelector('.card-title');
+        const summaryEl = card.querySelector('.card-summary');
+
+        if (titleEl) {
+            if (!titleEl.dataset.plainText)
+                titleEl.dataset.plainText = titleEl.textContent;
+            titleEl.innerHTML = highlightText(titleEl.dataset.plainText, q);
+        }
+        if (summaryEl) {
+            if (!summaryEl.dataset.plainText)
+                summaryEl.dataset.plainText = summaryEl.textContent;
+            summaryEl.innerHTML = highlightText(summaryEl.dataset.plainText, q);
+        }
+
+        // ── Tag color sync ──
+        card.querySelectorAll('.card-tag').forEach(tagEl => {
+            if (tag && tagEl.textContent.trim().toLowerCase() === tag) {
+                tagEl.classList.add('selected-tag');
+            } else {
+                tagEl.classList.remove('selected-tag');
+            }
+        });
+    });
 }
 </script>
 {% endblock %}
