@@ -1,0 +1,86 @@
+/* Custom styling for Django Admin keyword page to match Cinematic Dark theme */
+body, #content {
+    background-color: #141414 !important;
+    color: #ffffff !important;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+#header, .breadcrumbs {
+    background: #0a0a0a !important;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.breadcrumbs a, #header a {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+div.breadcrumbs {
+    color: rgba(255, 255, 255, 0.45) !important;
+}
+
+h1, h2, h3, .module h2 {
+    font-family: 'Bebas Neue', sans-serif !important;
+    letter-spacing: 0.05em !important;
+    font-weight: normal !important;
+}
+
+/* Form Styles */
+.module {
+    background: #1a1a1a !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 8px !important;
+}
+
+form input[type="text"], form textarea {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    width: 100% !important;
+    max-width: 600px !important;
+    box-sizing: border-box !important;
+}
+
+form input[type="text"]:focus, form textarea:focus {
+    border-color: #E50914 !important;
+    outline: none !important;
+}
+
+.form-row {
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.submit-row {
+    background: #0a0a0a !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 8px !important;
+}
+
+.submit-row input[type="submit"], .submit-row input[type="submit"].default {
+    background-color: #E50914 !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 10px 20px !important;
+    cursor: pointer !important;
+    transition: background-color 0.15s ease !important;
+}
+
+.submit-row input[type="submit"]:hover {
+    background-color: #b80710 !important;
+}
+
+.help {
+    color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Error states */
+.errornote, .errorlist li {
+    background-color: rgba(229, 9, 20, 0.14) !important;
+    border: 1px solid #E50914 !important;
+    color: #ffffff !important;
+    border-radius: 6px !important;
+}

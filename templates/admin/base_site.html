@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="{% static 'frontend/css/admin_theme.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" style="font-family: 'Bebas Neue', sans-serif; color: #E50914; font-size: 26px; letter-spacing: 0.05em; text-decoration: none; line-height: 1;">ANTIX News Admin</a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<a href="/" style="font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: rgba(255, 255, 255, 0.6); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s; margin-left: 20px;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='rgba(255, 255, 255, 0.6)'">
+    View Live Site &rarr;
+</a>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard-container">
+    <div class="admin-cards-grid">
+        {% if app_list %}
+            {% for app in app_list %}
+                <div class="filter-card admin-app-card">
+                    <h3 class="filter-title">
+                        <i class="ti {% if app.app_label == 'auth' %}ti-users{% elif app.app_label == 'posts' %}ti-article{% elif app.app_label == 'sources' %}ti-rss{% else %}ti-category{% endif %}"></i>
+                        {{ app.name }}
+                    </h3>
+                    
+                    <div class="admin-models-list">
+                        {% for model in app.models %}
+                            <div class="admin-model-row">
+                                <span class="admin-model-name">{{ model.name }}</span>
+                                <div class="admin-model-actions">
+                                    {% if model.add_url %}
+                                        <a href="{{ model.add_url }}" class="admin-action-btn add-btn"><i class="ti ti-plus"></i> Add</a>
+                                    {% endif %}
+                                    {% if model.admin_url %}
+                                        <a href="{{ model.admin_url }}" class="admin-action-btn view-btn">
+                                            {% if model.add_url %}
+                                                <i class="ti ti-edit"></i> Change
+                                            {% else %}
+                                                <i class="ti ti-eye"></i> View
+                                            {% endif %}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>{% translate "You don’t have permission to view or edit anything." %}</p>
+        {% endif %}
+
+        <!-- Recent Actions Card -->
+        <div class="filter-card admin-recent-card">
+            <h3 class="filter-title"><i class="ti ti-history"></i> {% translate 'Recent Actions' %}</h3>
+            <div class="admin-recent-content">
+                <p class="filter-group-label" style="font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">{% translate 'My Actions' %}</p>
+                {% load log %}
+                {% get_admin_log 10 as admin_log for_user user %}
+                {% if not admin_log %}
+                    <p style="font-size: 13px; color: var(--text-muted);">{% translate 'None available' %}</p>
+                {% else %}
+                    <ul class="admin-log-list">
+                        {% for entry in admin_log %}
+                            <li class="admin-log-item">
+                                <span class="log-icon">
+                                    {% if entry.is_addition %}
+                                        <i class="ti ti-circle-plus" style="color: #2ecc71;"></i>
+                                    {% elif entry.is_change %}
+                                        <i class="ti ti-edit" style="color: #f1c40f;"></i>
+                                    {% else %}
+                                        <i class="ti ti-circle-x" style="color: var(--red);"></i>
+                                    {% endif %}
+                                </span>
+                                <span class="log-text">
+                                    {% if entry.is_deletion or not entry.get_admin_url %}
+                                        {{ entry.object_repr }}
+                                    {% else %}
+                                        <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                                    {% endif %}
+                                    <span class="log-content-type">({{ entry.content_type }})</span>
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
