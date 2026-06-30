@@ -65,6 +65,7 @@ function reloadSavedFeed() {
             if (typeof hydrateSaved === 'function') hydrateSaved();
             if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
             if (typeof observeCards === 'function') observeCards();
+            applyHighlightsAndTagColors();
         })
         .catch(err => {
             console.error('Error reloading saved feed:', err);
@@ -79,5 +80,63 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.addEventListener('input', onSearchInput);
     }
 });
+
+// ── Highlight + tag-color utilities ──
+function highlightText(rawText, query) {
+    if (!query) return rawText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    const escaped = rawText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    const words = query.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return escaped;
+
+    const pattern = words
+        .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('|');
+
+    return escaped.replace(
+        new RegExp(`(${pattern})`, 'gi'),
+        '<span class="highlight">$1</span>'
+    );
+}
+
+function applyHighlightsAndTagColors() {
+    const q   = activeQ || '';
+    const tag = (typeof activeTag !== 'undefined' ? activeTag : '').toLowerCase();
+
+    document.querySelectorAll('.card').forEach(card => {
+        // ── Keyword highlighting ──
+        const titleEl   = card.querySelector('.card-title');
+        const summaryEl = card.querySelector('.card-summary');
+
+        if (titleEl) {
+            if (!titleEl.dataset.plainText)
+                titleEl.dataset.plainText = titleEl.textContent;
+            titleEl.innerHTML = highlightText(titleEl.dataset.plainText, q);
+        }
+        if (summaryEl) {
+            if (!summaryEl.dataset.plainText)
+                summaryEl.dataset.plainText = summaryEl.textContent;
+            summaryEl.innerHTML = highlightText(summaryEl.dataset.plainText, q);
+        }
+
+        // ── Tag color sync ──
+        card.querySelectorAll('.card-tag').forEach(tagEl => {
+            if (tag && tagEl.textContent.trim().toLowerCase() === tag) {
+                tagEl.classList.add('selected-tag');
+            } else {
+                tagEl.classList.remove('selected-tag');
+            }
+        });
+    });
+}
 </script>
 {% endblock %}

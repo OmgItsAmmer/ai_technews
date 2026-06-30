@@ -9,7 +9,7 @@
   --border-hover: rgba(255,255,255,0.18);
   --text: #ffffff;
   --text-muted: rgba(255,255,255,0.45);
-  --text-dim: rgba(255,255,255,0.22);
+  --text-dim: rgba(255,255,255,0.4);
   --font-display: 'Bebas Neue', sans-serif;
   --font-body: 'DM Sans', sans-serif;
 }
@@ -470,37 +470,18 @@ button {
 }
 .modal-close:hover { background: rgba(255,255,255,0.1); color: var(--text); transform: rotate(90deg); }
 
-/* Custom Checkbox Styling */
-.custom-checkbox {
-  -webkit-appearance: none;
-  appearance: none;
-  background-color: #212121 !important; /* greyish black background */
-  border: 1px solid var(--border) !important;
-  border-radius: 4px;
-  width: 18px !important;
-  height: 18px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer;
-  outline: none;
-  transition: background-color 0.15s, border-color 0.15s;
-  position: relative;
+/* ── Search keyword highlight ── */
+.highlight {
+  background: rgba(220, 38, 38, 0.25);
+  color: #ff4444;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 2px;
 }
 
-.custom-checkbox:checked {
-  background-color: var(--red) !important;
-  border-color: var(--red) !important;
+/* ── Active-tag card badge ── */
+.card-tag.selected-tag {
+  background: rgba(220, 38, 38, 0.15);
+  color: #ff4444;
+  border: 0.5px solid rgba(220, 38, 38, 0.5);
 }
-
-.custom-checkbox:checked::after {
-  content: "";
-  display: block;
-  width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-  margin-bottom: 2px;
-}
-
