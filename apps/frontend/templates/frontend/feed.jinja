@@ -13,43 +13,17 @@
   min-width: 0;
 }
 .feed-sidebar-col {
-  width: 300px;
+  width: 260px;
   flex-shrink: 0;
   position: sticky;
   top: 80px;
-  margin-top: 93px; /* offset = tag-row height (chip ~26px) + margin-bottom (24px) */
 }
 
-/* Filter Card Styling */
-.filter-card {
-  background: var(--surface);
-  border: 0.5px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.filter-title {
-  font-family: var(--font-display);
-  font-size: 22px;
-  color: var(--text);
-  letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 0.5px solid var(--border);
-  padding-bottom: 12px;
-  margin-bottom: 4px;
-}
-.filter-title i {
-  color: var(--red);
-  font-size: 20px;
-}
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-bottom: 16px;
 }
 .filter-group label {
   font-size: 11px;
@@ -67,7 +41,7 @@
   font-size: 13px;
   color: var(--text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s;
   width: 100%;
 }
 .filter-group select:focus, .filter-group input[type="date"]:focus {
@@ -85,6 +59,8 @@
   transition: all 0.15s;
   margin-top: 8px;
   cursor: pointer;
+  width: 100%;
+  font-family: var(--font-body);
 }
 .clear-filters-btn:hover {
   background: var(--red-dim);
@@ -92,10 +68,20 @@
   color: var(--red);
 }
 
-/* Responsiveness for Smaller Screen Filters */
+.feed-status-bar {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  font-family: var(--font-body);
+}
+.feed-status-bar strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
 @media (max-width: 1000px) {
   .feed-layout {
-    flex-direction: column-reverse;
+    flex-direction: column;
     gap: 32px;
   }
   .feed-sidebar-col {
@@ -106,16 +92,56 @@
 </style>
 
 <div class="feed-layout">
+    <aside class="feed-sidebar-col">
+        <div class="filter-group">
+            <label for="filter-tag">Topics</label>
+            <select id="filter-tag" onchange="onTagChange()">
+                <option value="" {% if not active_tag %}selected{% endif %}>All</option>
+                {% for tag in all_tags %}
+                    <option value="{{ tag }}" {% if active_tag == tag %}selected{% endif %}>{{ tag }} ({{ tag_counts.get(tag, 0) }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="filter-source">Source</label>
+            <select id="filter-source" onchange="onSourceChange()">
+                <option value="">All Sources</option>
+                {% for source in all_sources %}
+                    <option value="{{ source.id }}" {% if active_source|string == source.id|string %}selected{% endif %}>{{ source.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="filter-start-date">Start Date</label>
+            <input type="date" id="filter-start-date" value="{{ active_start_date or '' }}" onchange="onDateChange()">
+        </div>
+
+        <div class="filter-group">
+            <label for="filter-end-date">End Date</label>
+            <input type="date" id="filter-end-date" value="{{ active_end_date or '' }}" onchange="onDateChange()">
+        </div>
+
+        <div class="filter-group">
+            <label for="filter-sort">Sort Order</label>
+            <select id="filter-sort" onchange="onSortChange()">
+                <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>Newest first</option>
+                <option value="oldest" {% if active_sort == 'oldest' %}selected{% endif %}>Oldest first</option>
+            </select>
+        </div>
+
+        <div class="filter-group-checkbox" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <input type="checkbox" id="filter-featured" {% if active_featured %}checked{% endif %} onchange="onFeaturedChange()" class="custom-checkbox">
+            <label for="filter-featured" style="text-transform: none; font-size: 13px; color: var(--text); cursor: pointer; letter-spacing: normal; user-select: none; margin: 0; font-weight: normal;">Show featured on the top</label>
+        </div>
+
+        <button class="clear-filters-btn" onclick="clearAllFilters()">Clear Filters</button>
+    </aside>
+
     <div class="feed-main-col">
-
-
-        <div class="tag-row">
-            <span class="tag-chip {% if not active_tag %}active{% endif %}" 
-                  onclick="setTag(this, '')">All</span>
-            {% for tag in all_tags %}
-              <span class="tag-chip {% if active_tag == tag %}active{% endif %}"
-                    onclick="setTag(this, '{{ tag }}')">{{ tag }}</span>
-            {% endfor %}
+        <div class="feed-status-bar" id="feed-status-bar">
+            Showing <strong>{{ filtered_count }}</strong> article{% if filtered_count != 1 %}s{% endif %}{% if active_tag %} · {{ active_tag }}{% endif %}
         </div>
 
         <div class="grid" id="grid">
@@ -129,47 +155,6 @@
         </div>
 
         <div id="sentinel" style="height: 10px; margin-bottom: 20px;"></div>
-    </div>
-
-    <div class="feed-sidebar-col">
-        <div class="filter-card">
-            <h3 class="filter-title"><i class="ti ti-adjustments-horizontal"></i> Filters</h3>
-            
-            <div class="filter-group">
-                <label for="filter-source">Source</label>
-                <select id="filter-source" onchange="onSourceChange()">
-                    <option value="">All Sources</option>
-                    {% for source in all_sources %}
-                        <option value="{{ source.id }}" {% if active_source|string == source.id|string %}selected{% endif %}>{{ source.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label for="filter-start-date">Start Date</label>
-                <input type="date" id="filter-start-date" value="{{ active_start_date or '' }}" onchange="onDateChange()">
-            </div>
-            
-            <div class="filter-group">
-                <label for="filter-end-date">End Date</label>
-                <input type="date" id="filter-end-date" value="{{ active_end_date or '' }}" onchange="onDateChange()">
-            </div>
-            
-            <div class="filter-group">
-                <label for="filter-sort">Sort Order</label>
-                <select id="filter-sort" onchange="onSortChange()">
-                    <option value="newest" {% if active_sort == 'newest' %}selected{% endif %}>Newest first</option>
-                    <option value="oldest" {% if active_sort == 'oldest' %}selected{% endif %}>Oldest first</option>
-                </select>
-            </div>
-
-            <div class="filter-group-checkbox" style="display: flex; align-items: center; gap: 10px; margin-top: 8px; margin-bottom: 8px;">
-                <input type="checkbox" id="filter-featured" {% if active_featured %}checked{% endif %} onchange="onFeaturedChange()" class="custom-checkbox">
-                <label for="filter-featured" style="text-transform: none; font-size: 13px; color: var(--text); cursor: pointer; letter-spacing: normal; user-select: none; margin: 0; font-weight: normal;">Show featured on the top</label>
-            </div>
-            
-            <button class="clear-filters-btn" onclick="clearAllFilters()">Clear Filters</button>
-        </div>
     </div>
 </div>
 
@@ -193,9 +178,8 @@ let activeFeatured = '{% if active_featured %}1{% else %}0{% endif %}';
 let currentPage = {{ page }};
 let totalPages = {{ total_pages }};
 let isLoading = false;
-let feedGeneration = 0; // incremented on every reloadFeed(); stale fetchNextPage responses are discarded
+let feedGeneration = 0;
 
-// Progressive enhancement: hide traditional pagination
 const paginationControls = document.getElementById('pagination-controls');
 if (paginationControls) {
     paginationControls.style.display = 'none';
@@ -211,11 +195,17 @@ function updateQueryParam(key, value) {
     return url.pathname + url.search;
 }
 
-function setTag(el, tag) {
-    activeTag = tag;
-    document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
-    el.classList.add('active');
-    history.replaceState(null, '', updateQueryParam('tag', tag));
+function updateFeedStatusBar(count, tag) {
+    const bar = document.getElementById('feed-status-bar');
+    if (!bar) return;
+    const label = count === 1 ? 'article' : 'articles';
+    const tagSuffix = tag ? ` · ${tag}` : '';
+    bar.innerHTML = `Showing <strong>${count}</strong> ${label}${tagSuffix}`;
+}
+
+function onTagChange() {
+    activeTag = document.getElementById('filter-tag').value;
+    history.replaceState(null, '', updateQueryParam('tag', activeTag));
     reloadFeed();
 }
 
@@ -253,7 +243,8 @@ function clearAllFilters() {
     activeTag = '';
     activeSort = 'newest';
     activeFeatured = '0';
-    
+
+    document.getElementById('filter-tag').value = '';
     document.getElementById('filter-source').value = '';
     document.getElementById('filter-start-date').value = '';
     document.getElementById('filter-end-date').value = '';
@@ -262,12 +253,7 @@ function clearAllFilters() {
     if (featuredCheckbox) featuredCheckbox.checked = false;
     const headerSearch = document.getElementById('search-in');
     if (headerSearch) headerSearch.value = '';
-    
-    document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('active'));
-    const allChip = Array.from(document.querySelectorAll('.tag-chip')).find(c => c.textContent.trim() === 'All');
-    if (allChip) allChip.classList.add('active');
-    
-    // Clear URL parameters
+
     const url = new URL(window.location);
     url.searchParams.delete('source');
     url.searchParams.delete('start_date');
@@ -277,11 +263,10 @@ function clearAllFilters() {
     url.searchParams.delete('sort');
     url.searchParams.delete('featured');
     history.replaceState(null, '', url.pathname + url.search);
-    
+
     reloadFeed();
 }
 
-// Debouncer for search input
 let debounceTimer;
 function debounce(func, delay) {
     return function(...args) {
@@ -299,29 +284,34 @@ function onSearchInput() {
 const debouncedReload = debounce(reloadFeed, 300);
 
 function reloadFeed() {
-    const gen = ++feedGeneration; // stamp this reload
+    const gen = ++feedGeneration;
     currentPage = 1;
     isLoading = true;
     const grid = document.getElementById('grid');
     grid.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: var(--text-muted);"><p>Loading articles...</p></div>';
-    
+
     const url = `/?page=1&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&featured=${activeFeatured}&ajax=1`;
-    
+
     return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(res => res.json())
         .then(data => {
-            if (gen !== feedGeneration) return; // a newer reload fired — discard this response
+            if (gen !== feedGeneration) return;
             totalPages = data.total_pages;
             currentPage = data.page;
             grid.innerHTML = data.html || '<div class="empty-state"><p>No articles match your filters.</p></div>';
-            
-            // Re-hydrate bookmarks and check overflow for "Read more"
+
+            if (typeof data.total_count === 'number') {
+                updateFeedStatusBar(data.total_count, activeTag || '');
+            }
+
             if (typeof hydrateSaved === 'function') hydrateSaved();
-            if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+            if (typeof refreshCardTagUI === 'function') setTimeout(refreshCardTagUI, 100);
+            else {
+                if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+                applyHighlightsAndTagColors();
+            }
             if (typeof observeCards === 'function') observeCards();
-            applyHighlightsAndTagColors();
-            
-            // Re-observe sentinel if there are pages left
+
             if (currentPage < totalPages) {
                 sentinelObserver.observe(sentinel);
             } else {
@@ -340,12 +330,11 @@ function reloadFeed() {
 function fetchNextPage() {
     if (isLoading || currentPage >= totalPages) return;
     isLoading = true;
-    const gen = feedGeneration; // capture — if reloadFeed() fires before this resolves, discard
-    
+    const gen = feedGeneration;
+
     const nextPage = currentPage + 1;
-    const url = `/?page=${nextPage}&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&ajax=1`;
-    
-    // Add loading spinner below grid
+    const url = `/?page=${nextPage}&q=${encodeURIComponent(activeQ)}&sort=${activeSort}&tag=${encodeURIComponent(activeTag)}&source=${activeSource}&start_date=${activeStartDate}&end_date=${activeEndDate}&featured=${activeFeatured}&ajax=1`;
+
     const loader = document.createElement('div');
     loader.id = 'lazy-loader-spinner';
     loader.style.textAlign = 'center';
@@ -358,21 +347,23 @@ function fetchNextPage() {
         .then(res => res.json())
         .then(data => {
             document.getElementById('lazy-loader-spinner')?.remove();
-            if (gen !== feedGeneration) return; // reloadFeed() fired while we were waiting — discard
+            if (gen !== feedGeneration) return;
             totalPages = data.total_pages;
             currentPage = data.page;
-            
+
             if (data.html) {
                 const grid = document.getElementById('grid');
                 grid.insertAdjacentHTML('beforeend', data.html);
-                
-                // Re-hydrate bookmarks and check overflow for new cards
+
                 if (typeof hydrateSaved === 'function') hydrateSaved();
-                if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+                if (typeof refreshCardTagUI === 'function') setTimeout(refreshCardTagUI, 100);
+                else {
+                    if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+                    applyHighlightsAndTagColors();
+                }
                 if (typeof observeCards === 'function') observeCards();
-                applyHighlightsAndTagColors();
             }
-            
+
             if (currentPage >= totalPages) {
                 sentinelObserver.unobserve(sentinel);
             }
@@ -385,7 +376,6 @@ function fetchNextPage() {
         });
 }
 
-// Setup IntersectionObserver for scroll-based pagination
 let sentinelObserver;
 const sentinel = document.getElementById('sentinel');
 
@@ -399,13 +389,12 @@ if (sentinel) {
     }, { rootMargin: '200px' });
     sentinelObserver.observe(sentinel);
 }
-// Bind search input to onSearchInput since search bar is inside base.jinja header
+
 const searchInput = document.getElementById('search-in');
 if (searchInput) {
     searchInput.addEventListener('input', onSearchInput);
 }
 
-// ── Highlight + tag-color utilities ──
 function highlightText(rawText, query) {
     if (!query) return rawText
         .replace(/&/g, '&amp;')
@@ -437,7 +426,6 @@ function applyHighlightsAndTagColors() {
     const tag = (typeof activeTag !== 'undefined' ? activeTag : '').toLowerCase();
 
     document.querySelectorAll('.card').forEach(card => {
-        // ── Keyword highlighting ──
         const titleEl   = card.querySelector('.card-title');
         const summaryEl = card.querySelector('.card-summary');
 
@@ -452,7 +440,6 @@ function applyHighlightsAndTagColors() {
             summaryEl.innerHTML = highlightText(summaryEl.dataset.plainText, q);
         }
 
-        // ── Tag color sync ──
         card.querySelectorAll('.card-tag').forEach(tagEl => {
             if (tag && tagEl.textContent.trim().toLowerCase() === tag) {
                 tagEl.classList.add('selected-tag');

@@ -232,10 +232,9 @@ button {
 /* Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
-@media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
 
@@ -357,6 +356,34 @@ button {
 }
 
 .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.card-tags--conveyor {
+  display: block;
+  overflow: hidden;
+  margin-top: auto;
+}
+.card-tags--conveyor .card-tags-viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+.card-tags--conveyor .card-tags-track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  width: max-content;
+  will-change: transform;
+}
+.card-tags--conveyor .card-tags-track:hover {
+  animation-play-state: paused;
+}
+.card-tags--conveyor .card-tag {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+@keyframes card-tags-conveyor {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 .card-tag {
   font-size: 11px;
   padding: 4px 10px;
@@ -375,8 +402,18 @@ button {
   margin-top: 12px;
 }
 .card-meta { display: flex; flex-direction: column; gap: 3px; }
-.card-author { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-.card-source { font-size: 11px; color: var(--text-dim); }
+.card-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.card-source-verified {
+  color: var(--red);
+  font-size: 14px;
+  flex-shrink: 0;
+}
 
 .card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .card-date { font-size: 11px; color: var(--text-dim); }

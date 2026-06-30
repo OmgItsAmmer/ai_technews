@@ -41,6 +41,16 @@ def get_all_tags():
             tags.update(tag_list)
     return sorted(list(tags))
 
+
+def get_tag_counts():
+    counts = {}
+    for tag_list in Post.objects.filter(status='approved').values_list('tags', flat=True):
+        if isinstance(tag_list, list):
+            for t in tag_list:
+                counts[t] = counts.get(t, 0) + 1
+    total = Post.objects.filter(status='approved').count()
+    return counts, total
+
 from django.db.models.functions import Coalesce
 
 def feed_view(request):
@@ -119,7 +129,8 @@ def feed_view(request):
             post.matched_keyword = None
     
     all_tags = get_all_tags()
-    
+    tag_counts, total_articles = get_tag_counts()
+
     from apps.sources.models import Source
     from apps.sources.management.commands.seed_sources import SEED_SOURCES
     seeded_names = [s['name'] for s in SEED_SOURCES]
@@ -130,6 +141,9 @@ def feed_view(request):
         'page': page_num,
         'total_pages': paginator.num_pages,
         'all_tags': all_tags,
+        'tag_counts': tag_counts,
+        'total_articles': total_articles,
+        'filtered_count': paginator.count,
         'all_sources': all_sources,
         'active_q': q,
         'active_tag': tag,
@@ -148,6 +162,7 @@ def feed_view(request):
             'html': html,
             'page': page_num,
             'total_pages': paginator.num_pages,
+            'total_count': paginator.count,
         })
 
     return render(request, 'frontend/feed.jinja', context)
