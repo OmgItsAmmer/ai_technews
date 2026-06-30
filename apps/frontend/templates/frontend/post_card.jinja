@@ -1,4 +1,4 @@
-<div class="card"
+<div class="card{% if post.matched_keyword %} card--featured{% endif %}"
      data-id="{{ post.id }}"
      data-tags="{{ post.tags | join_tags }}"
      data-date="{% if post.published_at %}{{ post.published_at.strftime('%Y-%m-%d') }}{% else %}{{ post.fetched_at.strftime('%Y-%m-%d') }}{% endif %}">
@@ -25,7 +25,7 @@
   </div>
   <div class="card-footer">
     <div class="card-meta">
-      <span class="card-source">
+      <span class="card-source"{% if post.source %} style="color: {{ post.source | source_color }}"{% endif %}>
         {% if post.source %}
           {% if post.author %}<i class="ti ti-discount-check-filled card-source-verified" aria-hidden="true"></i>{% endif %}
           {{ post.source.name }}
