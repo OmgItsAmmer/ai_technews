@@ -220,7 +220,17 @@
             const title = card.querySelector('.card-title').textContent;
             // The textContent of a line-clamped element retains the full original text.
             const summary = card.querySelector('.card-summary').textContent;
-            const tagsHtml = card.querySelector('.card-tags').innerHTML;
+            const tagsContainer = card.querySelector('.card-tags');
+            let tagsHtml;
+            if (tagsContainer.classList.contains('card-tags--conveyor')) {
+                const track = tagsContainer.querySelector('.card-tags-track');
+                const half = track ? track.children.length / 2 : 0;
+                tagsHtml = track
+                    ? Array.from(track.children).slice(0, half).map(t => t.outerHTML).join('')
+                    : tagsContainer.innerHTML;
+            } else {
+                tagsHtml = tagsContainer.innerHTML;
+            }
             const metaHtml = card.querySelector('.card-footer').innerHTML;
             
             const modalBody = document.getElementById('modal-body');
@@ -251,6 +261,74 @@
             });
         }
 
+        function tagsWrap(container) {
+            const tags = container.querySelectorAll(':scope > .card-tag');
+            if (tags.length < 2) return false;
+            const lineHeight = tags[0].offsetHeight;
+            return container.scrollHeight > lineHeight + 2;
+        }
+
+        function restoreTagContainer(container) {
+            if (container.dataset.conveyorActive !== '1') return;
+            const track = container.querySelector('.card-tags-track');
+            if (!track) return;
+            const half = track.children.length / 2;
+            const originals = Array.from(track.children).slice(0, half);
+            container.replaceChildren(...originals);
+            container.classList.remove('card-tags--conveyor');
+            delete container.dataset.conveyorActive;
+        }
+
+        function buildTagConveyor(container, tagNodes) {
+            container.dataset.conveyorActive = '1';
+            container.classList.add('card-tags--conveyor');
+
+            const viewport = document.createElement('div');
+            viewport.className = 'card-tags-viewport';
+
+            const track = document.createElement('div');
+            track.className = 'card-tags-track';
+
+            tagNodes.forEach(tag => track.appendChild(tag));
+            tagNodes.forEach(tag => track.appendChild(tag.cloneNode(true)));
+
+            viewport.appendChild(track);
+            container.replaceChildren(viewport);
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const halfWidth = track.scrollWidth / 2;
+                    if (halfWidth <= viewport.clientWidth) return;
+                    const duration = Math.max(8, halfWidth / 32);
+                    track.style.animation = `card-tags-conveyor ${duration}s linear infinite`;
+                });
+            });
+        }
+
+        function initTagConveyorForCard(card) {
+            const container = card.querySelector('.card-tags');
+            if (!container || container.closest('#card-modal')) return;
+
+            restoreTagContainer(container);
+            if (!tagsWrap(container)) return;
+
+            const tags = Array.from(container.querySelectorAll(':scope > .card-tag'));
+            if (tags.length < 2) return;
+            buildTagConveyor(container, tags);
+        }
+
+        function initTagConveyors() {
+            document.querySelectorAll('.card').forEach(card => initTagConveyorForCard(card));
+        }
+
+        function refreshCardTagUI() {
+            checkReadMore();
+            initTagConveyors();
+            if (typeof applyHighlightsAndTagColors === 'function') {
+                applyHighlightsAndTagColors();
+            }
+        }
+
         // Initial token generation and hydration check
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -274,10 +352,13 @@
             }
             
             hydrateSaved();
-            setTimeout(checkReadMore, 100);
-            window.addEventListener('resize', checkReadMore);
+            setTimeout(refreshCardTagUI, 100);
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(refreshCardTagUI, 150);
+            });
             if (typeof observeCards === 'function') observeCards();
-            if (typeof applyHighlightsAndTagColors === 'function') applyHighlightsAndTagColors();
         });
 
         async function fetchLatestNews() {
@@ -344,6 +425,10 @@
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('card-visible');
+                    initTagConveyorForCard(entry.target);
+                    if (typeof applyHighlightsAndTagColors === 'function') {
+                        applyHighlightsAndTagColors();
+                    }
                 } else {
                     entry.target.classList.remove('card-visible');
                 }

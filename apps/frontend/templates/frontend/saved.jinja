@@ -63,9 +63,12 @@ function reloadSavedFeed() {
             
             // Re-hydrate bookmarks, observe cards, and check overflow for "Read more"
             if (typeof hydrateSaved === 'function') hydrateSaved();
-            if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+            if (typeof refreshCardTagUI === 'function') setTimeout(refreshCardTagUI, 100);
+            else {
+                if (typeof checkReadMore === 'function') setTimeout(checkReadMore, 100);
+                applyHighlightsAndTagColors();
+            }
             if (typeof observeCards === 'function') observeCards();
-            applyHighlightsAndTagColors();
         })
         .catch(err => {
             console.error('Error reloading saved feed:', err);
