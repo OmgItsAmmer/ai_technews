@@ -113,7 +113,7 @@ class ScrutinizeClient:
             payload["conversation"] = conversation
 
         try:
-            resp = requests.post(url, headers=self._client_headers(), json=payload, timeout=45)
+            resp = requests.post(url, headers=self._client_headers(), json=payload, timeout=120)
             resp.raise_for_status()
             return resp.json()
         except requests.RequestException as e:
