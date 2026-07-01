@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <!-- Styles -->
     <link rel="stylesheet" href="{{ static('frontend/css/main.css') }}">
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         html {
             scroll-behavior: smooth;
@@ -419,7 +421,16 @@
             messages.forEach(msg => {
                 const bubble = document.createElement('div');
                 bubble.className = `chat-bubble ${msg.role}`;
-                bubble.textContent = msg.content;
+                
+                if (msg.role === 'assistant') {
+                    if (typeof marked !== 'undefined') {
+                        bubble.innerHTML = marked.parse ? marked.parse(msg.content) : marked(msg.content);
+                    } else {
+                        bubble.textContent = msg.content;
+                    }
+                } else {
+                    bubble.textContent = msg.content;
+                }
                 
                 if (msg.role === 'assistant' && msg.citations && msg.citations.length > 0) {
                     const citWrap = document.createElement('div');

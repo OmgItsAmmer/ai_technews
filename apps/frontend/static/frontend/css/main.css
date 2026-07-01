@@ -573,6 +573,36 @@ button {
   border-bottom-left-radius: 4px;
 }
 
+/* Chat Bubble Markdown Styles */
+.chat-bubble.ai p {
+  margin: 0 0 12px 0;
+}
+.chat-bubble.ai p:last-child {
+  margin-bottom: 0;
+}
+.chat-bubble.ai ul, .chat-bubble.ai ol {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+}
+.chat-bubble.ai li {
+  margin-bottom: 6px;
+}
+.chat-bubble.ai li:last-child {
+  margin-bottom: 0;
+}
+.chat-bubble.ai h3, .chat-bubble.ai h4 {
+  font-size: 15px;
+  margin: 16px 0 8px 0;
+  font-weight: 700;
+  color: #ffffff;
+}
+.chat-bubble.ai h3:first-child, .chat-bubble.ai h4:first-child {
+  margin-top: 0;
+}
+.chat-bubble.ai strong {
+  color: #ffffff;
+}
+
 .chat-citations {
   margin-top: 12px;
   display: flex; flex-direction: column; gap: 8px;
