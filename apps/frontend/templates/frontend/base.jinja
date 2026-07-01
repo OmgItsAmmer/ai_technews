@@ -78,7 +78,10 @@
             </div>
             {% endif %}
         </div>
-        <div class="nav-right">
+        <div class="nav-right" style="display: flex; align-items: center; gap: 10px;">
+            <button class="ai-btn" onclick="toggleAskAiDrawer()">
+                <i class="ti ti-sparkles" aria-hidden="true"></i> Ask AI
+            </button>
             <button id="fetch-btn" class="icon-btn" onclick="fetchLatestNews()">
                 <i class="ti ti-refresh" aria-hidden="true"></i> Fetch latest
             </button>
@@ -97,6 +100,25 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
             <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Ask AI Chat Drawer -->
+    <div id="ask-ai-backdrop" class="chat-backdrop" onclick="closeAskAiDrawer(event)">
+        <div class="chat-panel" onclick="event.stopPropagation()">
+            <div class="chat-header">
+                <h3><i class="ti ti-sparkles"></i> Ask AI Intelligence</h3>
+                <button class="modal-close" onclick="closeAskAiDrawer()" style="position: static;"><i class="ti ti-x"></i></button>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="chat-bubble ai">
+                    Hello! I'm your AI intelligence assistant powered by Scrutinize. Ask me anything about recent tech news, AI developments, or industry trends!
+                </div>
+            </div>
+            <div class="chat-input-wrap">
+                <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question about AI news..." onkeydown="if(event.key === 'Enter') sendChatMessage()">
+                <button id="chat-send" class="chat-send-btn" onclick="sendChatMessage()"><i class="ti ti-send"></i></button>
+            </div>
         </div>
     </div>
 
@@ -357,6 +379,136 @@
             document.querySelectorAll('.card').forEach(card => {
                 cardObserver.observe(card);
             });
+        }
+
+        // Ask AI Chatbot Logic
+        let pageSessionId = 'page_' + Math.random().toString(36).slice(2, 9);
+        
+        function toggleAskAiDrawer() {
+            const backdrop = document.getElementById('ask-ai-backdrop');
+            backdrop.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => document.getElementById('chat-input').focus(), 100);
+            loadChatHistory();
+        }
+
+        function closeAskAiDrawer(e) {
+            if (e && e.target !== e.currentTarget && !e.target.closest('.modal-close')) return;
+            document.getElementById('ask-ai-backdrop').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        async function loadChatHistory() {
+            const token = getOrCreateToken();
+            try {
+                const res = await fetch(`/api/chat/history?token=${token}&page_session_id=${pageSessionId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.messages && data.messages.length > 0) {
+                        renderMessages(data.messages);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed loading chat history", e);
+            }
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = '';
+            messages.forEach(msg => {
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble ${msg.role}`;
+                bubble.textContent = msg.content;
+                
+                if (msg.role === 'assistant' && msg.citations && msg.citations.length > 0) {
+                    const citWrap = document.createElement('div');
+                    citWrap.className = 'chat-citations';
+                    msg.citations.forEach(c => {
+                        const card = document.createElement('div');
+                        card.className = 'chat-citation-card';
+                        const urlAttr = c.url ? `onclick="window.open('${c.url.replace(/'/g, "\\'")}', '_blank')"` : '';
+                        const styleAttr = c.url ? 'style="cursor:pointer;"' : '';
+                        card.innerHTML = `
+                            <div class="chat-citation-title" ${urlAttr} ${styleAttr}>
+                                <span>[#${c.index}] ${c.title}</span>
+                                ${c.url ? '<i class="ti ti-external-link" style="color:var(--red);"></i>' : ''}
+                            </div>
+                            <div class="chat-citation-meta">${c.source_name} ${c.date ? '• ' + c.date : ''}</div>
+                            ${c.snippet ? `<div class="chat-citation-snippet">"${c.snippet}..."</div>` : ''}
+                        `;
+                        citWrap.appendChild(card);
+                    });
+                    bubble.appendChild(citWrap);
+                }
+                container.appendChild(bubble);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const btn = document.getElementById('chat-send');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            btn.disabled = true;
+
+            const container = document.getElementById('chat-messages');
+            
+            // Append user bubble
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble user';
+            userBubble.textContent = message;
+            container.appendChild(userBubble);
+
+            // Append typing indicator
+            const typingBubble = document.createElement('div');
+            typingBubble.className = 'chat-bubble ai';
+            typingBubble.id = 'typing-bubble';
+            typingBubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            container.appendChild(typingBubble);
+            container.scrollTop = container.scrollHeight;
+
+            const token = getOrCreateToken();
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_token: token,
+                        page_session_id: pageSessionId,
+                        message: message
+                    })
+                });
+
+                const typing = document.getElementById('typing-bubble');
+                if (typing) typing.remove();
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.messages) {
+                        renderMessages(data.messages);
+                    }
+                } else {
+                    const errBubble = document.createElement('div');
+                    errBubble.className = 'chat-bubble ai';
+                    errBubble.textContent = "Sorry, I encountered an error answering your request.";
+                    container.appendChild(errBubble);
+                }
+            } catch (e) {
+                const typing = document.getElementById('typing-bubble');
+                if (typing) typing.remove();
+                const errBubble = document.createElement('div');
+                errBubble.className = 'chat-bubble ai';
+                errBubble.textContent = "Network error communicating with Ask AI.";
+                container.appendChild(errBubble);
+            } finally {
+                btn.disabled = false;
+                container.scrollTop = container.scrollHeight;
+                input.focus();
+            }
         }
     </script>
 </body>

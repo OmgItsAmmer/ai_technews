@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="post",
-            index=models.Index(fields=["status", "published_at"], name="posts_post_status_8de7d2_idx"),
+            index=models.Index(fields=["status", "published_at"], name="posts_post_status_384c95_idx"),
         ),
         migrations.AddIndex(
             model_name="post",

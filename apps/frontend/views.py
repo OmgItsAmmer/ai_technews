@@ -162,3 +162,32 @@ def api_fetch_latest(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_chat(request):
+    try:
+        data = json.loads(request.body)
+        token = data.get("session_token") or data.get("token") or "anon"
+        page_session_id = data.get("page_session_id") or "default"
+        message = data.get("message")
+
+        if not message:
+            return JsonResponse({"error": "Missing message content"}, status=400)
+
+        from apps.frontend.chat import handle_chat_message
+        res = handle_chat_message(token, page_session_id, message)
+        return JsonResponse(res)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def api_chat_history(request):
+    token = request.GET.get("session_token") or request.GET.get("token") or "anon"
+    page_session_id = request.GET.get("page_session_id") or "default"
+
+    from apps.frontend.chat import get_chat_history
+    messages = get_chat_history(token, page_session_id)
+    return JsonResponse({"messages": messages})
+

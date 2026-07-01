@@ -145,6 +145,11 @@ FETCHER_DEDUP_TTL_SECONDS = 30 * 24 * 60 * 60
 FETCHER_MAX_HOMEPAGE_LINKS = 30
 FETCHER_MAX_ARTICLE_TEXT_CHARS = 3000
 
+# Scrutinize API Config
+SCRUTINIZE_API_BASE_URL = os.environ.get("SCRUTINIZE_API_BASE_URL", "http://localhost:8000")
+SCRUTINIZE_ADMIN_API_KEY = os.environ.get("SCRUTINIZE_ADMIN_API_KEY", "scrutinize_sk_d5e6feae8ca4ff07557f29e8536f20f89b60f73f40270b9e")
+SCRUTINIZE_PUBLIC_CLIENT_KEY = os.environ.get("SCRUTINIZE_PUBLIC_CLIENT_KEY", "scrutinize_pk_bad456b4ad1c215b093a78e12e33629074ee10f95e7e291b")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

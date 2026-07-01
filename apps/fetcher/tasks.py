@@ -201,6 +201,19 @@ def fetch_source(self, source_id: int) -> int:
 
 
 @shared_task
+def sync_scrutinize_task(days: int = 30, limit: int = 50) -> dict:
+    """Run bidirectional sync with Scrutinize vector DB."""
+    from django.core.management import call_command
+    logger.info("Executing sync_scrutinize_task...")
+    try:
+        call_command("sync_scrutinize", days=days, limit=limit)
+        return {"status": "success"}
+    except Exception as exc:
+        logger.exception("Failed to sync with Scrutinize: %s", exc)
+        return {"status": "failed", "error": str(exc)}
+
+
+@shared_task
 def fetch_all_sources() -> dict[str, int]:
     """Dispatch a fetch task for every active source."""
     source_ids = list(
@@ -208,6 +221,9 @@ def fetch_all_sources() -> dict[str, int]:
     )
     for source_id in source_ids:
         fetch_source.delay(source_id)
+
+    # Schedule Scrutinize sync after source dispatch
+    sync_scrutinize_task.apply_async(countdown=60)
 
     logger.info("Dispatched fetch_source for %s active sources", len(source_ids))
     return {"dispatched": len(source_ids)}
