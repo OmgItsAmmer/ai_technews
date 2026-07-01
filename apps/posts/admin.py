@@ -1,7 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib import admin
-from config.admin_site import admin_site
 
 from .models import Post, KeywordSetting
 
@@ -20,6 +19,7 @@ class KeywordSettingForm(forms.ModelForm):
         return ", ".join(kws)
 
 
+@admin.register(KeywordSetting)
 class KeywordSettingAdmin(admin.ModelAdmin):
     form = KeywordSettingForm
 
@@ -40,20 +40,35 @@ class KeywordSettingAdmin(admin.ModelAdmin):
         return False
 
 
+@admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ("title", "tags", "published_at", "status")
+    list_display = ("title", "status", "published_at", "tags")
+    list_filter = ("status",)
+    search_fields = ("title", "summary")
+    readonly_fields = (
+        "source",
+        "title",
+        "original_url",
+        "author",
+        "published_at",
+        "fetched_at",
+        "raw_content",
+        "summary",
+        "tags",
+        "status",
+        "url_hash",
+    )
 
     def has_add_permission(self, request):
-        # Disables the standard "Add" button — posts are added via the intake form
+        return False
+
+    def has_change_permission(self, request, obj=None):
         return False
 
     def has_delete_permission(self, request, obj=None):
         return False
 
 
-# Register models on our custom admin site
-admin_site.register(KeywordSetting, KeywordSettingAdmin)
-admin_site.register(Post, PostAdmin)
+admin.site.enable_nav_sidebar = False
 
-# Disable the navigation sidebar globally on our custom admin site
-admin_site.enable_nav_sidebar = False
+
