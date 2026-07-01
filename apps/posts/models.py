@@ -38,6 +38,7 @@ class Post(models.Model):
         default=PostStatus.PENDING,
     )
     url_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    scrutinize_file_id = models.CharField(max_length=64, blank=True, null=True, db_index=True)
 
     class Meta:
         ordering = [models.F("published_at").desc(nulls_last=True), "-fetched_at"]

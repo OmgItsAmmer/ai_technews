@@ -58,7 +58,7 @@ makemigrations:
 
 # Run Django development server (backend)
 backend:
-	python manage.py runserver
+	python manage.py runserver 8050
 
 # Run Django development server (frontend - since frontend is a Django app)
 frontend: backend

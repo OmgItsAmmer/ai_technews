@@ -242,37 +242,30 @@ def api_fetch_latest(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@require_http_methods(["GET"])
-def api_chat_history(request):
-    session_token = request.GET.get("session_token", "").strip()
-    page_session_id = request.GET.get("page_session_id", "").strip()
-
-    if not session_token or not page_session_id:
-        return JsonResponse({"error": "Missing session_token or page_session_id"}, status=400)
-
-    from .chat import get_messages
-    return JsonResponse({"messages": get_messages(session_token, page_session_id)})
-
-
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_chat(request):
     try:
         data = json.loads(request.body)
-        session_token = (data.get("session_token") or "").strip()
-        page_session_id = (data.get("page_session_id") or "").strip()
-        message = (data.get("message") or "").strip()
+        token = data.get("session_token") or data.get("token") or "anon"
+        page_session_id = data.get("page_session_id") or "default"
+        message = data.get("message")
 
-        if not session_token or not page_session_id:
-            return JsonResponse({"error": "Missing session_token or page_session_id"}, status=400)
         if not message:
-            return JsonResponse({"error": "Message cannot be empty"}, status=400)
+            return JsonResponse({"error": "Missing message content"}, status=400)
 
-        from .chat import handle_chat_message
-        result = handle_chat_message(session_token, page_session_id, message)
-        return JsonResponse(result)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        from apps.frontend.chat import handle_chat_message
+        res = handle_chat_message(token, page_session_id, message)
+        return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+
+@require_http_methods(["GET"])
+def api_chat_history(request):
+    token = request.GET.get("session_token") or request.GET.get("token") or "anon"
+    page_session_id = request.GET.get("page_session_id") or "default"
+
+    from apps.frontend.chat import get_chat_history
+    messages = get_chat_history(token, page_session_id)
+    return JsonResponse({"messages": messages})
