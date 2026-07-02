@@ -1,4 +1,4 @@
-<div class="card"
+<div class="card{% if post.matched_keyword %} card--featured{% endif %}"
      data-id="{{ post.id }}"
      data-tags="{{ post.tags | join_tags }}"
      data-date="{% if post.published_at %}{{ post.published_at.strftime('%Y-%m-%d') }}{% else %}{{ post.fetched_at.strftime('%Y-%m-%d') }}{% endif %}">
