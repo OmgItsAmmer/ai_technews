@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapid News</title>
+    <title>Antix News</title>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <!-- Icons -->
@@ -62,7 +62,7 @@
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="/" class="logo">Rapid News</a>
+            <a href="/" class="logo">Antix News</a>
             <div id="global-fetch-loader" style="display: none; align-items: center; gap: 6px; margin-left: 18px; font-size: 13px; color: var(--red); font-weight: 500; font-family: var(--font-body);">
                 <i class="ti ti-loader-2" style="display: inline-block; animation: spin 1s linear infinite;" aria-hidden="true"></i>
                 Fetching latest news...
@@ -81,14 +81,14 @@
             {% endif %}
         </div>
         <div class="nav-right" style="display: flex; align-items: center; gap: 10px;">
-            <button class="ai-btn" onclick="toggleAskAiDrawer()">
-                <i class="ti ti-sparkles" aria-hidden="true"></i> Ask AI
-            </button>
             <button id="fetch-btn" class="icon-btn" onclick="fetchLatestNews()">
                 <i class="ti ti-refresh" aria-hidden="true"></i> Fetch latest
             </button>
             <button id="copy-btn" class="icon-btn" onclick="copyToken()">
                 <i class="ti ti-copy" aria-hidden="true"></i> Copy session
+            </button>
+            <button class="ai-btn" onclick="toggleAskAiDrawer()">
+                <i class="ti ti-sparkles" aria-hidden="true"></i> Ask AI
             </button>
         </div>
     </nav>

@@ -1,8 +1,11 @@
-author name not fetching
 
-text not readable
 
-other sources not fetching
 
-authenticity tag
+parser date is wrong
+
+rag fix (spelling and meta data)
+
+remove unwanted resources
+
+deploy md
 

@@ -749,14 +749,14 @@ button {
   background: linear-gradient(135deg, rgba(229, 9, 20, 0.2), rgba(229, 9, 20, 0.05));
   border: 0.5px solid rgba(229, 9, 20, 0.6);
   color: #fff;
-  padding: 6px 14px;
-  border-radius: 99px;
+  padding: 8px 14px;
+  border-radius: 6px;
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }

@@ -167,7 +167,7 @@ flowchart TD
 Here is how each technology operates within the pipeline and why it was selected:
 
 * **FastAPI (Backend App)**: Hosts the `/v2/search` endpoints and orchestrates dependency injection (e.g., database sessions, clients, and pipeline components). Native asynchronous programming allows high-throughput handling of non-blocking I/O tasks.
-* **Qdrant (Vector Database)**: Holds text and media embeddings (1536 dimensions) mapped to payloads containing document IDs, modality types (`text`, `audio`, `video`), text contents, and timestamps. Offers rapid approximate nearest neighbor (ANN) search and payload-based metadata filtering.
+* **Qdrant (Vector Database)**: Holds text and media embeddings (1536 dimensions) mapped to payloads containing document IDs, modality types (`text`, `audio`, `video`), text contents, and timestamps. Offers Antix approximate nearest neighbor (ANN) search and payload-based metadata filtering.
 * **Neon Postgres (Relational DB & Observability)**: Serves as the database for relational schemas (files, processing jobs, segments) and houses `PipelineLogger` tables to track the multi-stage execution logs.
 * **Cloudinary (Object Storage)**: Holds the raw media files (source PDFs, MP3s, MP4s) and returns CDN-backed HTTPS URLs, supporting byte-range seek for media playback.
 * **Redis + Celery (Task Queue)**: Decouples slow files upload processing tasks (such as keyframe extraction, Whisper transcribing, and embedding generation) from request-response cycles.

@@ -68,7 +68,7 @@ def handle_chat_message(session_token: str, page_session_id: str, message: str) 
                 "index": idx,
                 "post_id": post.id,
                 "title": post.title,
-                "source_name": post.source.name if post.source else "Rapid News",
+                "source_name": post.source.name if post.source else "Antix News",
                 "url": post.original_url or "",
                 "date": post.published_at.strftime("%b %d, %Y") if post.published_at else "",
                 "snippet": content_snippet,

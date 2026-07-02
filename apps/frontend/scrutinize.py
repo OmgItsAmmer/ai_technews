@@ -35,7 +35,7 @@ class ScrutinizeClient:
         """Format a Django Post record into text and upload to Scrutinize via POST /upload."""
         filename = f"post_{post.id}.txt"
         tags_str = ", ".join(post.tags) if isinstance(post.tags, list) else str(post.tags or "")
-        source_name = post.source.name if post.source else "Rapid News"
+        source_name = post.source.name if post.source else "Antix News"
         date_str = str(post.published_at or post.fetched_at or "")
 
         content = (

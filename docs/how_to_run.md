@@ -1,6 +1,6 @@
-# How to Run Rapid News and Scrutinize Locally
+# How to Run Antix News and Scrutinize Locally
 
-This guide details how to run the **Rapid News** (Django + Celery) project and the **Scrutinize** (FastAPI + Celery + Qdrant) RAG pipeline side-by-side on your local machine.
+This guide details how to run the **Antix News** (Django + Celery) project and the **Scrutinize** (FastAPI + Celery + Qdrant) RAG pipeline side-by-side on your local machine.
 
 ---
 
@@ -13,10 +13,10 @@ Running both projects locally creates two primary resource conflicts:
 ### Resolution Strategy:
 *   **Ports**:
     *   Run **Scrutinize** (RAG Service) on port `8000`.
-    *   Run **Rapid News** on port `8050` (or another port of your choice).
+    *   Run **Antix News** on port `8050` (or another port of your choice).
 *   **Redis Databases**:
     *   Use database `0` for **Scrutinize** (`redis://localhost:6379/0`).
-    *   Use database `1` for **Rapid News** (ANTIX News) (`redis://localhost:6379/1`).
+    *   Use database `1` for **Antix News** (ANTIX News) (`redis://localhost:6379/1`).
 
 ---
 
@@ -24,7 +24,7 @@ Running both projects locally creates two primary resource conflicts:
 
 ### Step 1: Shared Services (Redis & Qdrant)
 
-Only one Redis instance needs to be running. We will use the Docker Compose configuration from **Rapid News** to spin up Redis, and Scrutinize's configuration to spin up Qdrant.
+Only one Redis instance needs to be running. We will use the Docker Compose configuration from **Antix News** to spin up Redis, and Scrutinize's configuration to spin up Qdrant.
 
 1. **Start Redis** (from the `ai_news` directory):
    ```bash
@@ -80,16 +80,16 @@ Only one Redis instance needs to be running. We will use the Docker Compose conf
 
 ---
 
-### Step 3: Configure and Run Rapid News
+### Step 3: Configure and Run Antix News
 
-1. Open the **Rapid News** (`ai_news`) project folder.
+1. Open the **Antix News** (`ai_news`) project folder.
 2. Verify or create your `.env` file. Ensure the following configurations:
    ```env
    # Use Redis Database 1 to isolate from Scrutinize
    REDIS_URL=redis://localhost:6379/1
    
-   # Neon PostgreSQL for Rapid News
-   DATABASE_URL=postgresql://... (Use your Rapid News database)
+   # Neon PostgreSQL for Antix News
+   DATABASE_URL=postgresql://... (Use your Antix News database)
    
    # Point to Scrutinize API running on port 8000
    SCRUTINIZE_API_BASE_URL=http://localhost:8000
@@ -101,15 +101,15 @@ Only one Redis instance needs to be running. We will use the Docker Compose conf
    make migrate
    python manage.py seed_sources
    ```
-4. Start the Rapid News backend on port **`8050`**:
+4. Start the Antix News backend on port **`8050`**:
    ```bash
-   # In Terminal 4 (Rapid News Backend)
+   # In Terminal 4 (Antix News Backend)
    python manage.py runserver 8050
    ```
    *(Your Django app is now running at `http://127.0.0.1:8050/`)*
-5. Start the Rapid News Celery worker:
+5. Start the Antix News Celery worker:
    ```bash
-   # In Terminal 5 (Rapid News Worker)
+   # In Terminal 5 (Antix News Worker)
    make worker
    ```
 
@@ -124,5 +124,5 @@ Only one Redis instance needs to be running. We will use the Docker Compose conf
    ```
    It should return `{"status": "ok", ...}` showing Redis and Qdrant connections are active.
 
-2. **Rapid News API Connection**:
-   Start your Rapid News application, and when you navigate to your Rapid News frontend at `http://127.0.0.1:8050/`, verify that the system can query the local RAG pipeline at port `8000` without connection errors.
+2. **Antix News API Connection**:
+   Start your Antix News application, and when you navigate to your Antix News frontend at `http://127.0.0.1:8050/`, verify that the system can query the local RAG pipeline at port `8000` without connection errors.
