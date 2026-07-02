@@ -25,7 +25,7 @@
   </div>
   <div class="card-footer">
     <div class="card-meta">
-      <span class="card-source"{% if post.source %} style="color: {{ post.source | source_color }}"{% endif %}>
+      <span class="card-source">
         {% if post.source %}
           {% if post.author %}<i class="ti ti-discount-check-filled card-source-verified" aria-hidden="true"></i>{% endif %}
           {{ post.source.name }}
