@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any
 
 import feedparser
+from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 
 
@@ -12,6 +13,7 @@ class FeedEntry:
     title: str
     published_at: datetime | None
     summary: str
+    author: str | None = None
 
 
 def _parse_published_date(entry: dict[str, Any]) -> datetime | None:
@@ -33,15 +35,39 @@ def _parse_published_date(entry: dict[str, Any]) -> datetime | None:
     return None
 
 
+def _plain_text(value: str) -> str:
+    """Strip HTML markup from RSS snippet fields."""
+    text = BeautifulSoup(value, "html.parser").get_text(separator=" ", strip=True)
+    return " ".join(text.split())
+
+
 def _entry_summary(entry: dict[str, Any]) -> str:
+    raw = ""
     if entry.get("summary"):
-        return entry["summary"]
-    if entry.get("description"):
-        return entry["description"]
-    content = entry.get("content")
-    if content and isinstance(content, list) and content[0].get("value"):
-        return content[0]["value"]
-    return ""
+        raw = entry["summary"]
+    elif entry.get("description"):
+        raw = entry["description"]
+    else:
+        content = entry.get("content")
+        if content and isinstance(content, list) and content[0].get("value"):
+            raw = content[0]["value"]
+    if not raw:
+        return ""
+    return _plain_text(raw)
+
+
+def _entry_author(entry: dict[str, Any]) -> str | None:
+    author = (entry.get("author") or "").strip()
+    if author:
+        return author
+    authors = entry.get("authors")
+    if authors and isinstance(authors, list):
+        name = (authors[0].get("name") or "").strip()
+        if name:
+            return name
+    detail = entry.get("author_detail") or {}
+    name = (detail.get("name") or "").strip()
+    return name or None
 
 
 def fetch_rss(rss_url: str) -> list[FeedEntry]:
@@ -61,6 +87,7 @@ def fetch_rss(rss_url: str) -> list[FeedEntry]:
                 title=title,
                 published_at=_parse_published_date(entry),
                 summary=_entry_summary(entry),
+                author=_entry_author(entry),
             )
         )
 

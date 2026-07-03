@@ -625,3 +625,188 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focu
     margin-left: 4px !important;
 }
 
+/* ── Responsive admin layout ── */
+#content {
+    padding: 20px 24px !important;
+}
+
+@media (max-width: 1024px) {
+    #changelist .colMS {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    #changelist-filter {
+        width: 100% !important;
+        float: none !important;
+        margin: 0 0 20px 0 !important;
+        border-left: none !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+    }
+
+    .colM {
+        width: 100% !important;
+        float: none !important;
+    }
+
+    #result_list,
+    .results {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #result_list table {
+        min-width: 600px;
+    }
+}
+
+@media (max-width: 768px) {
+    #header {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        padding: 12px 16px !important;
+        gap: 8px !important;
+    }
+
+    #branding {
+        flex: 1 1 auto !important;
+    }
+
+    #branding h1,
+    #site-name a {
+        font-size: 20px !important;
+    }
+
+    #user-tools {
+        width: 100% !important;
+        text-align: left !important;
+        margin: 0 !important;
+        padding-top: 4px !important;
+        font-size: 12px !important;
+    }
+
+    #nav-global a {
+        margin-left: 0 !important;
+        font-size: 12px !important;
+    }
+
+    .breadcrumbs {
+        padding: 8px 16px !important;
+        font-size: 11px !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+    }
+
+    #content {
+        padding: 16px !important;
+    }
+
+    .admin-cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    .filter-card {
+        padding: 18px !important;
+    }
+
+    .admin-model-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+
+    .admin-model-actions {
+        width: 100% !important;
+        flex-wrap: wrap !important;
+    }
+
+    .admin-action-btn {
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+    }
+
+    .actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .actions label,
+    .actions select,
+    .actions input[type="submit"] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    #toolbar {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    #changelist-search {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    #searchbar {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .object-tools {
+        float: none !important;
+        margin: 0 0 12px 0 !important;
+    }
+
+    .object-tools li {
+        display: block !important;
+        margin: 0 0 8px 0 !important;
+    }
+
+    .object-tools a {
+        display: block !important;
+        text-align: center !important;
+    }
+
+    .submit-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .submit-row input[type="submit"],
+    .submit-row a {
+        width: 100% !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+    }
+
+    .form-row {
+        padding: 12px !important;
+    }
+
+    .login #container {
+        margin: 40px 16px !important;
+        max-width: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 22px !important;
+    }
+
+    table thead th,
+    table tbody td,
+    table tbody th {
+        padding: 8px 6px !important;
+        font-size: 12px !important;
+    }
+}

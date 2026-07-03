@@ -105,6 +105,17 @@ class ScrutinizeClient:
             logger.error("Failed to list Scrutinize library: %s", e)
             return []
 
+    def get_job_status(self, job_id: str) -> dict | None:
+        """Poll Scrutinize ingestion job status via GET /status/{job_id}."""
+        url = f"{self.base_url}/status/{job_id}"
+        try:
+            resp = requests.get(url, headers=self._admin_headers(), timeout=15)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            logger.error("Failed to get Scrutinize job status %s: %s", job_id, e)
+            return None
+
     def search(self, query: str, conversation: dict = None) -> dict | None:
         """Search Scrutinize vector DB and generate LLM answer via POST /v2/search."""
         url = f"{self.base_url}/v2/search"

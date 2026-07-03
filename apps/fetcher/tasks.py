@@ -22,12 +22,47 @@ def _candidate_entries(source: Source) -> list[FeedEntry]:
 
     links = discover_article_links(source.homepage_url)
     return [
-        FeedEntry(link=link, title=link, published_at=None, summary="")
+        FeedEntry(link=link, title=link, published_at=None, summary="", author=None)
         for link in links
     ]
 
 
-def _save_post(source: Source, entry: FeedEntry, body_text: str, metadata: dict) -> bool:
+def _rss_first(value, fallback):
+    """Use RSS value when present; otherwise fall back to LLM/scraped metadata."""
+    if isinstance(value, str):
+        return value.strip() or fallback
+    if value is not None:
+        return value
+    return fallback
+
+
+def _resolve_post_fields(
+    entry: FeedEntry, metadata: dict, *, prefer_rss: bool
+) -> dict:
+    """Merge RSS feed fields with LLM extraction, preferring RSS when available."""
+    if prefer_rss:
+        return {
+            "title": _rss_first(entry.title, metadata.get("title")),
+            "published_at": _rss_first(entry.published_at, metadata.get("published_at")),
+            "summary": _rss_first(entry.summary, metadata.get("summary")) or "",
+            "author": _rss_first(entry.author, metadata.get("author")),
+        }
+    return {
+        "title": metadata.get("title") or entry.title,
+        "published_at": metadata.get("published_at") or entry.published_at,
+        "summary": metadata.get("summary") or "",
+        "author": metadata.get("author"),
+    }
+
+
+def _save_post(
+    source: Source,
+    entry: FeedEntry,
+    body_text: str,
+    metadata: dict,
+    *,
+    prefer_rss: bool = False,
+) -> bool:
     if not metadata.get("is_valid_news"):
         logger.info(
             "Skipping invalid news for source=%s url=%s reason=%s",
@@ -37,19 +72,18 @@ def _save_post(source: Source, entry: FeedEntry, body_text: str, metadata: dict)
         )
         return False
 
-    title = metadata.get("title") or entry.title
-    published_at = metadata.get("published_at") or entry.published_at
+    fields = _resolve_post_fields(entry, metadata, prefer_rss=prefer_rss)
 
     from django.db import IntegrityError
     try:
         Post.objects.create(
             source=source,
-            title=title,
+            title=fields["title"],
             original_url=entry.link,
-            author=metadata.get("author"),
-            published_at=published_at,
+            author=fields["author"],
+            published_at=fields["published_at"],
             raw_content=body_text,
-            summary=metadata.get("summary") or "",
+            summary=fields["summary"],
             tags=metadata.get("tags") or [],
             status=PostStatus.APPROVED,
             url_hash=compute_url_hash(entry.link),
@@ -131,7 +165,13 @@ def _process_source(source: Source, log: PipelineLog = None) -> int:
                 }
 
             # Step 4: Storage
-            if _save_post(source, entry, body_text, metadata):
+            if _save_post(
+                source,
+                entry,
+                body_text,
+                metadata,
+                prefer_rss=bool(source.rss_url),
+            ):
                 saved_count += 1
                 if log:
                     article_log["steps"]["storage"] = {"status": "saved"}
@@ -203,27 +243,106 @@ def fetch_source(self, source_id: int) -> int:
 @shared_task
 def sync_scrutinize_task(days: int = 30, limit: int = 50) -> dict:
     """Run bidirectional sync with Scrutinize vector DB."""
-    from django.core.management import call_command
+    from apps.posts.services.sync_scrutinize import sync_scrutinize_posts
+
     logger.info("Executing sync_scrutinize_task...")
     try:
-        call_command("sync_scrutinize", days=days, limit=limit)
-        return {"status": "success"}
+        result = sync_scrutinize_posts(days=days, limit=limit)
+        return {
+            "status": "success",
+            "deleted_count": result.deleted_count,
+            "uploaded_count": result.uploaded_count,
+            "job_ids": result.job_ids,
+        }
     except Exception as exc:
         logger.exception("Failed to sync with Scrutinize: %s", exc)
         return {"status": "failed", "error": str(exc)}
 
 
 @shared_task
-def fetch_all_sources() -> dict[str, int]:
-    """Dispatch a fetch task for every active source."""
+def finalize_fetch_pipeline(fetch_results: list[int], run_id: str) -> dict:
+    """After all source fetches complete, sync to Scrutinize and queue embedding tracking."""
+    from apps.frontend.fetch_run import get_fetch_run, update_fetch_run
+    from apps.posts.services.sync_scrutinize import sync_scrutinize_posts
+
+    articles_saved = sum(r or 0 for r in (fetch_results or []))
+    state = get_fetch_run(run_id) or {}
+    update_fetch_run(
+        run_id,
+        sources_done=state.get("sources_total", 0),
+        articles_saved=articles_saved,
+        phase="syncing",
+        message="Uploading articles to Scrutinize (30-day window)…",
+    )
+
+    try:
+        result = sync_scrutinize_posts(days=30, limit=500)
+    except Exception as exc:
+        logger.exception("Scrutinize sync failed during fetch pipeline: %s", exc)
+        update_fetch_run(
+            run_id,
+            phase="failed",
+            error=str(exc),
+            message="Failed to sync articles with Scrutinize.",
+        )
+        return {"status": "failed", "error": str(exc)}
+
+    if result.job_ids:
+        update_fetch_run(
+            run_id,
+            phase="embedding",
+            deleted_count=result.deleted_count,
+            uploaded_count=result.uploaded_count,
+            job_ids=result.job_ids,
+            embedding_total=len(result.job_ids),
+            embedding_done=0,
+            embedding_failed=0,
+            message=f"Embedding {len(result.job_ids)} article(s) for AI search…",
+        )
+    else:
+        update_fetch_run(
+            run_id,
+            phase="done",
+            deleted_count=result.deleted_count,
+            uploaded_count=result.uploaded_count,
+            message="Fetch complete. AI index is up to date.",
+        )
+
+    return {
+        "status": "success",
+        "articles_saved": articles_saved,
+        "uploaded_count": result.uploaded_count,
+        "job_ids": result.job_ids,
+    }
+
+
+@shared_task
+def fetch_all_sources(run_id: str | None = None) -> dict[str, int | str]:
+    """Dispatch a fetch task for every active source, optionally tracked by ``run_id``."""
+    from celery import chord, group
+
+    from apps.frontend.fetch_run import update_fetch_run
+
     source_ids = list(
         Source.objects.filter(is_active=True).values_list("id", flat=True)
     )
-    for source_id in source_ids:
-        fetch_source.delay(source_id)
 
-    # Schedule Scrutinize sync after source dispatch
-    sync_scrutinize_task.apply_async(countdown=60)
+    if run_id:
+        update_fetch_run(run_id, sources_total=len(source_ids))
+        if source_ids:
+            chord(
+                group(fetch_source.s(source_id) for source_id in source_ids),
+                finalize_fetch_pipeline.s(run_id),
+            ).apply_async()
+        else:
+            finalize_fetch_pipeline.delay([], run_id)
+    else:
+        for source_id in source_ids:
+            fetch_source.delay(source_id)
+        sync_scrutinize_task.apply_async(countdown=60)
 
     logger.info("Dispatched fetch_source for %s active sources", len(source_ids))
-    return {"dispatched": len(source_ids)}
+    payload: dict[str, int | str] = {"dispatched": len(source_ids)}
+    if run_id:
+        payload["run_id"] = run_id
+    return payload

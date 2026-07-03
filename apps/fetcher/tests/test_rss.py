@@ -31,6 +31,7 @@ def test_fetch_rss_returns_feed_entries(mock_parse):
         title="First Post",
         published_at=datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
         summary="Short summary",
+        author=None,
     )
 
 
@@ -79,3 +80,35 @@ def test_fetch_rss_uses_description_when_summary_missing(mock_parse):
 
     entries = fetch_rss("https://example.com/feed.xml")
     assert entries[0].summary == "From description field"
+
+
+@patch("apps.fetcher.rss.feedparser.parse")
+def test_fetch_rss_strips_html_from_summary(mock_parse):
+    mock_parse.return_value = _make_parsed_feed(
+        [
+            {
+                "link": "https://example.com/post",
+                "title": "HTML Post",
+                "summary": "<p>Hello <strong>world</strong></p>",
+            }
+        ]
+    )
+
+    entries = fetch_rss("https://example.com/feed.xml")
+    assert entries[0].summary == "Hello world"
+
+
+@patch("apps.fetcher.rss.feedparser.parse")
+def test_fetch_rss_extracts_author(mock_parse):
+    mock_parse.return_value = _make_parsed_feed(
+        [
+            {
+                "link": "https://example.com/post",
+                "title": "Authored Post",
+                "author": "Jane Doe",
+            }
+        ]
+    )
+
+    entries = fetch_rss("https://example.com/feed.xml")
+    assert entries[0].author == "Jane Doe"

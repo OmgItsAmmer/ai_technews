@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -36,6 +37,7 @@ def test_process_source_saves_valid_pending_post(
             title="Feed Title",
             published_at=None,
             summary="snippet",
+            author=None,
         )
     ]
     mock_is_new_url.return_value = True
@@ -61,9 +63,106 @@ def test_process_source_saves_valid_pending_post(
 
     post = Post.objects.get(original_url="https://example.com/new-post")
     assert post.status == "approved"
-    assert post.title == "Extracted Title"
+    assert post.title == "Feed Title"
+    assert post.summary == "snippet"
     assert post.raw_content == "Full article body"
     assert post.tags == ["llms"]
+
+
+@patch("apps.fetcher.tasks.extract_from_text")
+@patch("apps.fetcher.tasks.extract_article_text")
+@patch("apps.fetcher.tasks.is_new_url")
+@patch("apps.fetcher.tasks.fetch_rss")
+def test_process_source_prefers_rss_fields_over_llm(
+    mock_fetch_rss,
+    mock_is_new_url,
+    mock_extract_article_text,
+    mock_extract_from_text,
+    source,
+):
+    rss_date = datetime(2024, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
+    llm_date = datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+    mock_fetch_rss.return_value = [
+        FeedEntry(
+            link="https://example.com/rss-priority",
+            title="RSS Title",
+            published_at=rss_date,
+            summary="RSS summary snippet",
+            author="RSS Author",
+        )
+    ]
+    mock_is_new_url.return_value = True
+    mock_extract_article_text.return_value = "Full article body"
+    mock_extract_from_text.return_value = {
+        "is_valid_news": True,
+        "title": "LLM Title",
+        "author": "LLM Author",
+        "published_at": llm_date,
+        "summary": "LLM summary",
+        "tags": ["llms"],
+        "missing_fields": [],
+        "invalid_reason": None,
+    }
+
+    saved = _process_source(source)
+    assert saved == 1
+
+    from apps.posts.models import Post
+
+    post = Post.objects.get(original_url="https://example.com/rss-priority")
+    assert post.title == "RSS Title"
+    assert post.published_at == rss_date
+    assert post.summary == "RSS summary snippet"
+    assert post.author == "RSS Author"
+    assert post.tags == ["llms"]
+
+
+@patch("apps.fetcher.tasks.extract_from_text")
+@patch("apps.fetcher.tasks.extract_article_text")
+@patch("apps.fetcher.tasks.is_new_url")
+@patch("apps.fetcher.tasks.fetch_rss")
+def test_process_source_falls_back_to_llm_when_rss_field_missing(
+    mock_fetch_rss,
+    mock_is_new_url,
+    mock_extract_article_text,
+    mock_extract_from_text,
+    source,
+):
+    llm_date = datetime(2024, 3, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    mock_fetch_rss.return_value = [
+        FeedEntry(
+            link="https://example.com/partial-rss",
+            title="RSS Title",
+            published_at=None,
+            summary="",
+            author=None,
+        )
+    ]
+    mock_is_new_url.return_value = True
+    mock_extract_article_text.return_value = "Full article body"
+    mock_extract_from_text.return_value = {
+        "is_valid_news": True,
+        "title": "LLM Title",
+        "author": "LLM Author",
+        "published_at": llm_date,
+        "summary": "LLM summary",
+        "tags": ["research"],
+        "missing_fields": [],
+        "invalid_reason": None,
+    }
+
+    saved = _process_source(source)
+    assert saved == 1
+
+    from apps.posts.models import Post
+
+    post = Post.objects.get(original_url="https://example.com/partial-rss")
+    assert post.title == "RSS Title"
+    assert post.published_at == llm_date
+    assert post.summary == "LLM summary"
+    assert post.author == "LLM Author"
 
 
 @patch("apps.fetcher.tasks.extract_from_text")

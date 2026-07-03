@@ -19,9 +19,13 @@
     <button class="read-more-btn" onclick="openModal(this)">Read more...</button>
   </div>
   <div class="card-tags">
-    {% for tag in post.tags %}
-    <span class="card-tag">{{ tag }}</span>
-    {% endfor %}
+    <div class="card-tags-viewport">
+      <div class="card-tags-track">
+        {% for tag in post.tags %}
+        <span class="card-tag">{{ tag }}</span>
+        {% endfor %}
+      </div>
+    </div>
   </div>
   <div class="card-footer">
     <div class="card-meta">

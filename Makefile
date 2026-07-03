@@ -59,7 +59,7 @@ docker-down:
 migrate:
 	python manage.py migrate
 
-makemigrations:
+makemigrations:	
 	python manage.py makemigrations
 
 backend:

@@ -82,11 +82,31 @@
 @media (max-width: 1000px) {
   .feed-layout {
     flex-direction: column;
-    gap: 32px;
+    gap: 24px;
   }
   .feed-sidebar-col {
     width: 100%;
     position: static;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+  }
+  .feed-sidebar-col .filter-group {
+    margin-bottom: 0;
+  }
+  .feed-sidebar-col .filter-group-checkbox,
+  .feed-sidebar-col .clear-filters-btn {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .feed-sidebar-col {
+    grid-template-columns: 1fr;
+  }
+  .feed-status-bar {
+    font-size: 13px;
+    margin-bottom: 16px;
   }
 }
 </style>

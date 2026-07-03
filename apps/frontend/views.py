@@ -236,10 +236,29 @@ def api_get_saved(request):
 def api_fetch_latest(request):
     try:
         from apps.fetcher.tasks import fetch_all_sources
-        fetch_all_sources.delay()
-        return JsonResponse({'status': 'dispatched'})
+        from apps.frontend.fetch_run import create_fetch_run
+        from apps.sources.models import Source
+
+        sources_total = Source.objects.filter(is_active=True).count()
+        run_id = create_fetch_run(sources_total=sources_total)
+        fetch_all_sources.delay(run_id=run_id)
+        return JsonResponse({"status": "started", "run_id": run_id})
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def api_fetch_status(request, run_id):
+    from apps.frontend.fetch_run import get_fetch_run, refresh_embedding_progress
+
+    state = get_fetch_run(run_id)
+    if state is None:
+        return JsonResponse({"error": "Unknown or expired fetch run"}, status=404)
+
+    if state.get("phase") == "embedding":
+        state = refresh_embedding_progress(run_id) or state
+
+    return JsonResponse(state)
 
 
 @csrf_exempt

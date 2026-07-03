@@ -23,9 +23,17 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        .fetch-spin {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
         .icon-btn.fetching {
             cursor: not-allowed;
             opacity: 0.8;
+        }
+        .icon-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.75;
         }
         /* Floating Navbar Styles */
         .navbar {
@@ -60,27 +68,26 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
+    <nav class="navbar" id="main-navbar">
         <div class="nav-left">
             <a href="/" class="logo">Antix News</a>
-            <div id="global-fetch-loader" style="display: none; align-items: center; gap: 6px; margin-left: 18px; font-size: 13px; color: var(--red); font-weight: 500; font-family: var(--font-body);">
-                <i class="ti ti-loader-2" style="display: inline-block; animation: spin 1s linear infinite;" aria-hidden="true"></i>
-                Fetching latest news...
-            </div>
         </div>
-        <div class="nav-center" style="display: flex; align-items: center; gap: 24px;">
+        <button type="button" class="nav-toggle" id="nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle menu" aria-expanded="false">
+            <i class="ti ti-menu-2" aria-hidden="true"></i>
+        </button>
+        <div class="nav-center">
             <div class="nav-links">
                 <a href="/" {% if active_page == 'feed' %}class="active"{% endif %}>Feed</a>
                 <a href="/saved" {% if active_page == 'saved' %}class="active"{% endif %}>Saved</a>
             </div>
             {% if active_page in ['feed', 'saved'] %}
-            <div class="search-wrap" style="position: relative; width: 280px;">
-                <i class="ti ti-search" aria-hidden="true" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-dim); pointer-events: none;"></i>
-                <input type="text" id="search-in" name="q" placeholder="Search articles..." value="{{ active_q or '' }}" style="width: 100%; background: rgba(255,255,255,0.05); border: 0.5px solid var(--border); border-radius: 99px; padding: 8px 16px 8px 38px; font-size: 13px; font-family: var(--font-body); color: var(--text); outline: none; transition: border-color 0.15s, background-color 0.15s;">
+            <div class="navbar-search-wrap">
+                <i class="ti ti-search" aria-hidden="true"></i>
+                <input type="text" id="search-in" name="q" class="navbar-search-input" placeholder="Search articles..." value="{{ active_q or '' }}">
             </div>
             {% endif %}
         </div>
-        <div class="nav-right" style="display: flex; align-items: center; gap: 10px;">
+        <div class="nav-right">
             <button id="fetch-btn" class="icon-btn" onclick="fetchLatestNews()">
                 <i class="ti ti-refresh" aria-hidden="true"></i> Fetch latest
             </button>
@@ -106,20 +113,30 @@
     </div>
 
     <!-- Ask AI Chat Drawer -->
-    <div id="ask-ai-backdrop" class="chat-backdrop" onclick="closeAskAiDrawer(event)">
-        <div class="chat-panel" onclick="event.stopPropagation()">
-            <div class="chat-header">
-                <h3><i class="ti ti-sparkles"></i> Ask AI Intelligence</h3>
-                <button class="modal-close" onclick="closeAskAiDrawer()" style="position: static;"><i class="ti ti-x"></i></button>
+    <div id="ask-ai-backdrop" class="chat-backdrop" onclick="closeAskAiDrawer(event)"></div>
+    <aside id="ask-ai-panel" class="chat-panel" aria-hidden="true">
+        <div class="chat-header">
+            <h3><i class="ti ti-sparkles"></i> Ask AI Intelligence</h3>
+            <button class="modal-close" onclick="closeAskAiDrawer()" style="position: static;"><i class="ti ti-x"></i></button>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+            <div class="chat-bubble ai">
+                Hello! I'm your AI intelligence assistant. Ask me anything about recent tech news, AI developments, or industry trends!
             </div>
-            <div id="chat-messages" class="chat-messages">
-                <div class="chat-bubble ai">
-                    Hello! I'm your AI intelligence assistant powered by Scrutinize. Ask me anything about recent tech news, AI developments, or industry trends!
-                </div>
-            </div>
-            <div class="chat-input-wrap">
-                <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question about AI news..." onkeydown="if(event.key === 'Enter') sendChatMessage()">
-                <button id="chat-send" class="chat-send-btn" onclick="sendChatMessage()"><i class="ti ti-send"></i></button>
+        </div>
+        <div class="chat-input-wrap">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask a question about AI news..." onkeydown="if(event.key === 'Enter') sendChatMessage()">
+            <button id="chat-send" class="chat-send-btn" onclick="sendChatMessage()"><i class="ti ti-send"></i></button>
+        </div>
+    </aside>
+
+    <!-- Scrutinize embedding progress (non-blocking; chat stays usable) -->
+    <div id="embedding-status-popup" class="embedding-status-popup" hidden aria-live="polite">
+        <div class="embedding-status-popup__inner">
+            <i class="ti ti-loader-2 embedding-status-popup__spinner" aria-hidden="true"></i>
+            <div class="embedding-status-popup__text">
+                <strong id="embedding-status-title">Indexing for AI search</strong>
+                <p id="embedding-status-detail">Uploading and embedding new articles…</p>
             </div>
         </div>
     </div>
@@ -244,7 +261,11 @@
             const title = card.querySelector('.card-title').textContent;
             // The textContent of a line-clamped element retains the full original text.
             const summary = card.querySelector('.card-summary').textContent;
-            const tagsHtml = card.querySelector('.card-tags').innerHTML;
+            const tagsContainer = card.querySelector('.card-tags');
+            const tagsInner = tagsContainer.dataset.tagsOriginal
+                || tagsContainer.querySelector('.card-tags-track')?.innerHTML
+                || '';
+            const tagsHtml = `<div class="card-tags-viewport"><div class="card-tags-track">${tagsInner}</div></div>`;
             const metaHtml = card.querySelector('.card-footer').innerHTML;
             
             const modalBody = document.getElementById('modal-body');
@@ -257,6 +278,7 @@
             
             document.getElementById('card-modal').classList.add('open');
             document.body.style.overflow = 'hidden';
+            setTimeout(() => initTagConveyors(modalBody), 50);
         }
 
         function closeModal(e) {
@@ -274,6 +296,50 @@
                 }
             });
         }
+
+        function initTagConveyors(root = document) {
+            root.querySelectorAll('.card-tags').forEach(container => {
+                const viewport = container.querySelector('.card-tags-viewport');
+                const track = container.querySelector('.card-tags-track');
+                if (!viewport || !track) return;
+
+                if (!container.dataset.tagsOriginal) {
+                    container.dataset.tagsOriginal = track.innerHTML;
+                } else {
+                    track.innerHTML = container.dataset.tagsOriginal;
+                }
+
+                container.classList.remove('card-tags--conveyor');
+                track.style.animation = '';
+
+                const tags = track.querySelectorAll('.card-tag');
+                if (!tags.length) return;
+
+                if (track.scrollWidth <= viewport.clientWidth + 1) return;
+
+                const originalCount = tags.length;
+                track.innerHTML = container.dataset.tagsOriginal + container.dataset.tagsOriginal;
+                track.querySelectorAll('.card-tag').forEach((el, index) => {
+                    if (index >= originalCount) el.setAttribute('aria-hidden', 'true');
+                });
+
+                container.classList.add('card-tags--conveyor');
+                const duration = Math.max(14, track.scrollWidth / 2 / 32);
+                track.style.animation = `card-tags-conveyor ${duration}s linear infinite`;
+            });
+        }
+
+        function refreshCardTagUI() {
+            if (typeof checkReadMore === 'function') checkReadMore();
+            initTagConveyors();
+            if (typeof applyHighlightsAndTagColors === 'function') applyHighlightsAndTagColors();
+        }
+
+        let tagConveyorResizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(tagConveyorResizeTimer);
+            tagConveyorResizeTimer = setTimeout(() => initTagConveyors(), 150);
+        });
 
         // Initial token generation and hydration check
         document.addEventListener('DOMContentLoaded', () => {
@@ -298,69 +364,156 @@
             }
             
             hydrateSaved();
-            setTimeout(checkReadMore, 100);
+            setTimeout(refreshCardTagUI, 100);
             window.addEventListener('resize', checkReadMore);
             if (typeof observeCards === 'function') observeCards();
-            if (typeof applyHighlightsAndTagColors === 'function') applyHighlightsAndTagColors();
         });
+
+        let fetchStatusPollTimer = null;
+
+        function setFetchButtonState(btn, { disabled, html, success, failed }) {
+            btn.disabled = disabled;
+            btn.classList.toggle('fetching', disabled);
+            btn.innerHTML = html;
+            btn.style.borderColor = success ? 'var(--red)' : failed ? 'rgba(255,80,80,0.6)' : '';
+            btn.style.color = success ? 'var(--red)' : failed ? '#ff6b6b' : '';
+        }
+
+        function showEmbeddingPopup(show, title, detail) {
+            const popup = document.getElementById('embedding-status-popup');
+            if (!popup) return;
+            if (title) document.getElementById('embedding-status-title').textContent = title;
+            if (detail) document.getElementById('embedding-status-detail').textContent = detail;
+            popup.hidden = !show;
+            popup.classList.toggle('embedding-status-popup--visible', show);
+        }
+
+        function stopFetchStatusPoll() {
+            if (fetchStatusPollTimer) {
+                clearInterval(fetchStatusPollTimer);
+                fetchStatusPollTimer = null;
+            }
+        }
+
+        function phaseButtonHtml(phase, state) {
+            if (phase === 'fetching') {
+                return '<i class="ti ti-loader-2 fetch-spin" aria-hidden="true"></i> Fetching latest news…';
+            }
+            if (phase === 'syncing') {
+                return '<i class="ti ti-loader-2 fetch-spin" aria-hidden="true"></i> Syncing to Scrutinize…';
+            }
+            if (phase === 'embedding') {
+                const done = (state.embedding_done || 0) + (state.embedding_failed || 0);
+                const total = state.embedding_total || 0;
+                const progress = total ? ` (${done}/${total})` : '';
+                return `<i class="ti ti-loader-2 fetch-spin" aria-hidden="true"></i> Embedding articles${progress}…`;
+            }
+            if (phase === 'done') {
+                return '<i class="ti ti-check" aria-hidden="true"></i> Done';
+            }
+            return '<i class="ti ti-x" aria-hidden="true"></i> Failed';
+        }
+
+        async function pollFetchRun(runId, btn) {
+            try {
+                const res = await fetch(`/api/fetch-status/${runId}`);
+                if (!res.ok) return;
+                const state = await res.json();
+                const phase = state.phase;
+
+                setFetchButtonState(btn, {
+                    disabled: true,
+                    html: phaseButtonHtml(phase, state),
+                });
+
+                if (phase === 'syncing' || phase === 'embedding') {
+                    showEmbeddingPopup(true, phase === 'syncing' ? 'Uploading to Scrutinize' : 'Embedding for AI search', state.message);
+                }
+
+                if (phase === 'done' || phase === 'failed') {
+                    stopFetchStatusPoll();
+                    showEmbeddingPopup(false);
+
+                    setFetchButtonState(btn, {
+                        disabled: false,
+                        html: phaseButtonHtml(phase, state),
+                        success: phase === 'done',
+                        failed: phase === 'failed',
+                    });
+
+                    if (phase === 'done' && typeof reloadFeed === 'function') {
+                        await reloadFeed();
+                    }
+
+                    setTimeout(() => {
+                        setFetchButtonState(btn, {
+                            disabled: false,
+                            html: '<i class="ti ti-refresh" aria-hidden="true"></i> Fetch latest',
+                        });
+                    }, 3000);
+                }
+            } catch (e) {
+                console.error('Fetch status poll failed', e);
+            }
+        }
 
         async function fetchLatestNews() {
             const btn = document.getElementById('fetch-btn');
-            if (btn.classList.contains('fetching')) return;
-            
-            btn.classList.add('fetching');
-            btn.innerHTML = '<i class="ti ti-loader-2" style="display: inline-block; animation: spin 1s linear infinite;" aria-hidden="true"></i> Fetching latest news...';
-            
-            const globalLoader = document.getElementById('global-fetch-loader');
-            if (globalLoader) {
-                globalLoader.style.display = 'flex';
-            }
-            
+            if (btn.disabled || btn.classList.contains('fetching')) return;
+
+            stopFetchStatusPoll();
+            setFetchButtonState(btn, {
+                disabled: true,
+                html: '<i class="ti ti-loader-2 fetch-spin" aria-hidden="true"></i> Fetching latest news…',
+            });
+            showEmbeddingPopup(false);
+
             try {
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
                 const headers = { 'Content-Type': 'application/json' };
                 if (csrfToken) {
                     headers['X-CSRFToken'] = csrfToken;
                 }
-                
-                const res = await fetch('/api/fetch-latest', { 
+
+                const res = await fetch('/api/fetch-latest', {
                     method: 'POST',
-                    headers: headers
+                    headers: headers,
                 });
-                
-                if (res.ok) {
-                    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Started';
-                    btn.style.borderColor = 'var(--red)';
-                    btn.style.color = 'var(--red)';
-                    
-                    // If reloadFeed exists (we are on the feed page), auto reload feed after 8 seconds
-                    if (typeof reloadFeed === 'function') {
-                        setTimeout(() => {
-                            reloadFeed().finally(() => {
-                                if (globalLoader) globalLoader.style.display = 'none';
-                            });
-                        }, 8000);
-                    } else {
-                        setTimeout(() => {
-                            if (globalLoader) globalLoader.style.display = 'none';
-                        }, 8000);
-                    }
-                } else {
-                    btn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i> Failed';
-                    if (globalLoader) globalLoader.style.display = 'none';
+                const data = await res.json();
+
+                if (!res.ok || !data.run_id) {
+                    setFetchButtonState(btn, {
+                        disabled: false,
+                        html: '<i class="ti ti-x" aria-hidden="true"></i> Failed',
+                        failed: true,
+                    });
+                    setTimeout(() => {
+                        setFetchButtonState(btn, {
+                            disabled: false,
+                            html: '<i class="ti ti-refresh" aria-hidden="true"></i> Fetch latest',
+                        });
+                    }, 3000);
+                    return;
                 }
+
+                await pollFetchRun(data.run_id, btn);
+                fetchStatusPollTimer = setInterval(() => pollFetchRun(data.run_id, btn), 2000);
             } catch (e) {
-                console.error("Failed to trigger fetch", e);
-                btn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i> Failed';
-                if (globalLoader) globalLoader.style.display = 'none';
+                console.error('Failed to trigger fetch', e);
+                stopFetchStatusPoll();
+                showEmbeddingPopup(false);
+                setFetchButtonState(btn, {
+                    disabled: false,
+                    html: '<i class="ti ti-x" aria-hidden="true"></i> Failed',
+                    failed: true,
+                });
+                setTimeout(() => {
+                    setFetchButtonState(btn, {
+                        disabled: false,
+                        html: '<i class="ti ti-refresh" aria-hidden="true"></i> Fetch latest',
+                    });
+                }, 3000);
             }
-            
-            setTimeout(() => {
-                btn.classList.remove('fetching');
-                btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Fetch latest';
-                btn.style.borderColor = '';
-                btn.style.color = '';
-            }, 3000);
         }
 
         // IntersectionObserver for fading in/out cards on scroll
@@ -385,10 +538,36 @@
 
         // Ask AI Chatbot Logic
         let pageSessionId = 'page_' + Math.random().toString(36).slice(2, 9);
+
+        function toggleMobileNav() {
+            const navbar = document.getElementById('main-navbar');
+            const toggle = document.getElementById('nav-toggle');
+            const isOpen = navbar.classList.toggle('nav-open');
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            toggle.innerHTML = isOpen
+                ? '<i class="ti ti-x" aria-hidden="true"></i>'
+                : '<i class="ti ti-menu-2" aria-hidden="true"></i>';
+        }
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                const navbar = document.getElementById('main-navbar');
+                const toggle = document.getElementById('nav-toggle');
+                if (navbar && navbar.classList.contains('nav-open')) {
+                    navbar.classList.remove('nav-open');
+                    if (toggle) {
+                        toggle.setAttribute('aria-expanded', 'false');
+                        toggle.innerHTML = '<i class="ti ti-menu-2" aria-hidden="true"></i>';
+                    }
+                }
+            }
+        });
         
         function toggleAskAiDrawer() {
-            const backdrop = document.getElementById('ask-ai-backdrop');
-            backdrop.classList.add('open');
+            document.getElementById('ask-ai-backdrop').classList.add('open');
+            const panel = document.getElementById('ask-ai-panel');
+            panel.classList.add('open');
+            panel.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
             setTimeout(() => document.getElementById('chat-input').focus(), 100);
             loadChatHistory();
@@ -397,6 +576,9 @@
         function closeAskAiDrawer(e) {
             if (e && e.target !== e.currentTarget && !e.target.closest('.modal-close')) return;
             document.getElementById('ask-ai-backdrop').classList.remove('open');
+            const panel = document.getElementById('ask-ai-panel');
+            panel.classList.remove('open');
+            panel.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
         }
 
