@@ -3,6 +3,7 @@ import logging
 from openai import OpenAI
 from django.conf import settings
 from apps.extraction.prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from apps.posts.services.llm_config import get_effective_api_key, get_effective_llm_settings
 
 logger = logging.getLogger(__name__)
 
@@ -11,16 +12,20 @@ def call_openai_extractor(content: str) -> dict:
     Calls OpenAI (gpt-4o-mini) to extract metadata from the provided content.
     If the API key is not configured or is a placeholder, falls back to a smart mock.
     """
-    api_key = getattr(settings, 'OPENAI_API_KEY', '')
-    model = getattr(settings, 'OPENAI_MODEL', 'gpt-4o-mini')
+    api_key = get_effective_api_key()
+    base_url, model = get_effective_llm_settings()
     
     # If using the default placeholder or empty key, use local mock response
-    if not api_key or api_key == 'sk-...' or api_key.startswith('sk-mock'):
-        logger.info("Using mock response because no real OpenAI API Key was found.")
-        return get_mock_response(content)
+    if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == 'sk-...' or settings.OPENAI_API_KEY.startswith('sk-mock'):
+        if not base_url:
+            logger.info("Using mock response because no real OpenAI API Key was found.")
+            return get_mock_response(content)
         
     try:
-        client = OpenAI(api_key=api_key)
+        if base_url:
+            client = OpenAI(base_url=base_url, api_key=api_key)
+        else:
+            client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
             model=model,
             messages=[

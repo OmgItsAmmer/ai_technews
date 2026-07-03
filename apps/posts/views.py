@@ -2,17 +2,14 @@ import json
 import logging
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from apps.posts.models import Post
 from apps.extraction.service import extract_metadata
 
 logger = logging.getLogger(__name__)
 
 
-def staff_required(view_func):
-    """Redirect to our custom admin login (not /accounts/login/) if not authenticated."""
-    decorated = login_required(view_func, login_url='/admin/login/')
-    return decorated
+staff_required = staff_member_required(login_url="/admin/login/")
 
 
 @staff_required

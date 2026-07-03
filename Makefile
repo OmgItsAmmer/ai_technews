@@ -73,6 +73,9 @@ shell:
 superuser:
 	python manage.py createsuperuser
 
+admin-user:
+	python manage.py ensure_admin_user
+
 worker:
 	celery -A config worker --pool=solo --loglevel=info
 

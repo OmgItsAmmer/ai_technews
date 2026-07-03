@@ -5,12 +5,12 @@ from typing import Any
 
 import httpx
 from dateutil import parser as date_parser
-from django.conf import settings
 from openai import OpenAI
 
 from apps.extractor.prompts import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT
 from apps.extractor.tags import VALID_TAG_SLUGS
 from apps.fetcher.scraper import extract_article_text
+from apps.posts.services.llm_config import get_effective_api_key, get_effective_llm_settings
 
 
 def _strip_json_fences(raw: str) -> str:
@@ -46,19 +46,19 @@ def _normalize_tags(tags: list[str] | None) -> tuple[list[str], list[str]]:
 
 
 def _build_client() -> OpenAI:
-    if settings.OPENAI_BASE_URL:
-        return OpenAI(
-            base_url=settings.OPENAI_BASE_URL,
-            api_key=settings.OPENAI_API_KEY or "not-needed"
-        )
-    return OpenAI(api_key=settings.OPENAI_API_KEY)
+    base_url, _ = get_effective_llm_settings()
+    api_key = get_effective_api_key()
+    if base_url:
+        return OpenAI(base_url=base_url, api_key=api_key)
+    return OpenAI(api_key=api_key)
 
 
 def extract_from_text(text: str) -> dict[str, Any]:
     """Send article text to configured LLM and return structured metadata."""
+    _, model_name = get_effective_llm_settings()
     client = _build_client()
     response = client.chat.completions.create(
-        model=settings.LLM_MODEL,
+        model=model_name,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},

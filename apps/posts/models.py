@@ -70,3 +70,31 @@ class KeywordSetting(models.Model):
     def __str__(self):
         return "Keyword Settings"
 
+
+class LLMConfig(models.Model):
+    base_url = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text=(
+            "OpenAI-compatible API base URL, e.g. http://localhost:11434/v1 or your ngrok /v1 endpoint. "
+            "Leave blank to use OPENAI_BASE_URL from .env."
+        ),
+    )
+    model_name = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text=(
+            "Local or remote model name, e.g. Qwen/Qwen3.5-4B. "
+            "Leave blank to use LLM_MODEL from .env."
+        ),
+    )
+
+    class Meta:
+        verbose_name = "LLM Config"
+        verbose_name_plural = "LLM Config"
+
+    def __str__(self):
+        return "LLM Config"
+

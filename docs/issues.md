@@ -1,19 +1,19 @@
 
-not mobile responsive
+not mobile responsivedone
 
 
-parser date is wrong
+parser date is wrong done
 
 rag fix (spelling and meta data) done
 
 
-remove unwanted resources
+remove unwanted resources 
 
 deploy md
 
 UI feedback of the RAG
 
 
-date logic
+date logic(proably fix)
 
 

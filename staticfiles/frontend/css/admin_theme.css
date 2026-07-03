@@ -228,6 +228,229 @@ table tbody th a {
     font-weight: bold !important;
 }
 
+/* ── Changelist page (posts list, pagination, toolbar) ── */
+#content-main {
+    background: var(--bg) !important;
+}
+
+.change-list #content {
+    background: var(--bg) !important;
+}
+
+#changelist .changelist-form-container {
+    background: var(--bg) !important;
+}
+
+#toolbar {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 16px 0 !important;
+}
+
+#changelist-search {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+#changelist-search label {
+    color: var(--text-muted) !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+}
+
+#changelist-search label img {
+    filter: invert(0.7) !important;
+}
+
+#changelist-search .quiet,
+#changelist .quiet,
+.action-counter,
+.actions span.all,
+.actions span.clear,
+.actions span.question,
+.actions span.action-counter {
+    color: var(--text-muted) !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+}
+
+.actions label {
+    color: var(--text) !important;
+}
+
+.actions .button {
+    background-color: var(--red) !important;
+    color: var(--text) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+}
+
+.actions .button:hover {
+    background-color: #b80710 !important;
+}
+
+#result_list {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+#result_list table {
+    border: none !important;
+}
+
+#result_list thead th {
+    border-top: none !important;
+}
+
+#result_list tbody tr:last-child td,
+#result_list tbody tr:last-child th {
+    border-bottom: none !important;
+}
+
+#result_list tbody th a,
+#result_list tbody td a {
+    color: var(--text) !important;
+    font-weight: 500 !important;
+}
+
+#result_list tbody th a:hover,
+#result_list tbody td a:hover {
+    color: var(--red) !important;
+}
+
+table thead th.sorted {
+    background: rgba(229, 9, 20, 0.08) !important;
+}
+
+table thead th.sorted .sortoptions a {
+    filter: invert(0.85) !important;
+}
+
+.paginator {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text-muted) !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    padding: 12px 16px !important;
+    margin: 16px 0 0 0 !important;
+}
+
+.paginator a:link,
+.paginator a:visited {
+    color: var(--text) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    text-decoration: none !important;
+    transition: background 0.15s, border-color 0.15s, color 0.15s !important;
+}
+
+.paginator a.showall {
+    background: transparent !important;
+    border: none !important;
+    color: var(--red) !important;
+    padding: 0 8px !important;
+}
+
+.paginator a:focus,
+.paginator a:hover {
+    background: var(--red-dim) !important;
+    border-color: rgba(229, 9, 20, 0.45) !important;
+    color: var(--text) !important;
+}
+
+.paginator .this-page {
+    background: var(--red) !important;
+    border: 1px solid var(--red) !important;
+    border-radius: 6px !important;
+    color: #fff !important;
+    padding: 4px 10px !important;
+    font-weight: 600 !important;
+}
+
+.paginator input {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    color: var(--text) !important;
+    padding: 4px 8px !important;
+}
+
+.object-tools {
+    margin: 0 0 16px 0 !important;
+    padding: 0 !important;
+}
+
+.object-tools li {
+    margin-left: 0 !important;
+    height: auto !important;
+}
+
+.object-tools a:link,
+.object-tools a:visited {
+    background: var(--red-dim) !important;
+    background-image: none !important;
+    border: 1px solid rgba(229, 9, 20, 0.45) !important;
+    border-radius: 6px !important;
+    color: var(--text) !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
+    transition: background 0.15s, border-color 0.15s !important;
+}
+
+.object-tools a:focus,
+.object-tools a:hover {
+    background: var(--red) !important;
+    border-color: var(--red) !important;
+    color: #fff !important;
+}
+
+.object-tools a.addlink,
+.object-tools a.viewsitelink {
+    padding-left: 16px !important;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--red) !important;
+}
+
+#changelist .actions .action-select {
+    border-color: var(--border) !important;
+}
+
+.change-list .filtered .results,
+.change-list .filtered .paginator {
+    margin-right: 0 !important;
+}
+
+#changelist .toplinks {
+    border-bottom: 1px solid var(--border) !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 12px !important;
+}
+
+#changelist .toplinks a {
+    color: var(--text-muted) !important;
+}
+
+#changelist .toplinks a:hover {
+    color: var(--red) !important;
+}
+
 /* Forms & Fields */
 fieldset.module {
     border: 1px solid var(--border) !important;
@@ -261,6 +484,64 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focu
     border-color: var(--red) !important;
     background-color: rgba(255, 255, 255, 0.08) !important;
     outline: none !important;
+}
+
+/* Aligned change forms (LLM Config, Keyword Settings, etc.) */
+.aligned .form-row > div {
+    width: 100% !important;
+}
+
+.aligned .flex-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.aligned .flex-container label {
+    flex: 0 0 160px !important;
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
+    padding: 0 10px 0 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.aligned .flex-container input,
+.aligned .flex-container textarea,
+.aligned .flex-container select {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    max-width: 610px !important;
+    margin: 0 !important;
+}
+
+fieldset.module .description {
+    color: var(--text-muted) !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    padding: 0 16px 12px !important;
+    margin: 0 !important;
+}
+
+.change-form form .submit-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding: 14px 16px 14px 170px !important;
+    box-sizing: border-box !important;
+}
+
+.change-form form .submit-row input,
+.change-form form .submit-row a {
+    margin: 0 !important;
+    width: auto !important;
+}
+
+.change-form form .submit-row input.default {
+    min-width: 120px !important;
 }
 
 /* Read-only and non-editable fields */
@@ -382,8 +663,17 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focu
 }
 
 /* Login Page Theme Override */
-.login {
+body.login {
     background-color: var(--bg) !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px 16px !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
 }
 
 .login #container {
@@ -391,28 +681,59 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focu
     border: 1px solid var(--border) !important;
     border-radius: 12px !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
-    overflow: hidden;
+    overflow: visible !important;
+    width: 100% !important;
+    min-width: 0 !important;
     max-width: 400px !important;
-    margin: 100px auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+}
+
+.login #container > .main {
+    display: block !important;
+    flex: none !important;
+}
+
+.login .main > .content {
+    flex: none !important;
+    max-width: 100% !important;
 }
 
 .login #header {
     background: var(--nav) !important;
     border-bottom: 1px solid var(--border) !important;
     text-align: center !important;
-    padding: 24px !important;
+    padding: 20px 24px !important;
+    height: auto !important;
 }
 
 .login #header a {
     font-family: var(--font-display) !important;
     color: var(--red) !important;
-    font-size: 32px !important;
+    font-size: 28px !important;
     letter-spacing: 0.05em !important;
     text-decoration: none !important;
+    line-height: 1.1 !important;
 }
 
 .login #content {
-    padding: 30px !important;
+    padding: 24px 28px 28px !important;
+    width: auto !important;
+    float: none !important;
+}
+
+.login #content-main {
+    float: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.login #footer {
+    display: none !important;
 }
 
 .login .form-row {
@@ -443,6 +764,42 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focu
     width: 100% !important;
     padding: 12px !important;
     font-size: 14px !important;
+}
+
+.login-intro {
+    color: var(--text-muted) !important;
+    font-size: 14px !important;
+    margin: 0 0 16px 0 !important;
+    text-align: center !important;
+    line-height: 1.45 !important;
+}
+
+.login-back-link {
+    text-align: center !important;
+    margin-top: 20px !important;
+    font-size: 13px !important;
+}
+
+.login-back-link a {
+    color: var(--text-muted) !important;
+    text-decoration: none !important;
+}
+
+.login-back-link a:hover {
+    color: var(--red) !important;
+}
+
+.login #site-name a {
+    font-family: var(--font-display) !important;
+    color: var(--red) !important;
+    font-size: 28px !important;
+    letter-spacing: 0.05em !important;
+    text-decoration: none !important;
+    line-height: 1.1 !important;
+}
+
+.login .errornote {
+    margin-bottom: 12px !important;
 }
 
 /* Help details */
@@ -779,6 +1136,31 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focu
         display: flex !important;
         flex-direction: column !important;
         gap: 10px !important;
+        padding: 14px 16px !important;
+    }
+
+    .aligned .flex-container {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .aligned .flex-container label {
+        flex: none !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 0 0 6px 0 !important;
+    }
+
+    .aligned .flex-container input,
+    .aligned .flex-container textarea,
+    .aligned .flex-container select {
+        max-width: none !important;
+        width: 100% !important;
+    }
+
+    .change-form form .submit-row {
+        padding: 14px 16px !important;
     }
 
     .submit-row input[type="submit"],
@@ -793,8 +1175,25 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focu
     }
 
     .login #container {
-        margin: 40px 16px !important;
-        max-width: none !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+
+    body.login {
+        padding: 16px 12px !important;
+    }
+
+    .login #header {
+        padding: 16px 20px !important;
+    }
+
+    .login #header a,
+    .login #site-name a {
+        font-size: 24px !important;
+    }
+
+    .login #content {
+        padding: 20px !important;
     }
 }
 

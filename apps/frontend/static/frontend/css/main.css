@@ -125,6 +125,7 @@ button {
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
   white-space: nowrap;
+  text-decoration: none;
 }
 .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
 .icon-btn i { font-size: 15px; }
@@ -950,6 +951,7 @@ button {
     width: 100%;
   }
   .nav-right .icon-btn,
+  .nav-right a.icon-btn,
   .nav-right .ai-btn {
     width: 100%;
     justify-content: center;
