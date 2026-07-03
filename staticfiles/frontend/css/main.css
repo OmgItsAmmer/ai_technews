@@ -794,6 +794,7 @@ button {
   display: flex; flex-direction: column;
   box-shadow: -12px 0 48px rgba(0, 0, 0, 0.8);
   transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: none;
 }
 .chat-backdrop.open .chat-panel {
   right: 0;
