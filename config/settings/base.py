@@ -103,6 +103,16 @@ LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/admin/"
 LOGOUT_REDIRECT_URL = "/admin/login/"
 
+AUTHENTICATION_BACKENDS = [
+    "config.backends.EmailBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# Session Settings (60 minutes timeout)
+SESSION_COOKIE_AGE = 3600  # 60 minutes in seconds
+SESSION_SAVE_EVERY_REQUEST = True  # session expires 60 minutes after the last active request
+
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True

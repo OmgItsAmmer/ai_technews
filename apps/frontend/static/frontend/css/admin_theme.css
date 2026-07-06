@@ -54,6 +54,8 @@ a:hover, a:active {
     background: var(--nav) !important;
     border-bottom: 1px solid var(--border) !important;
     padding: 16px 24px !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 #branding h1 {
@@ -64,16 +66,53 @@ a:hover, a:active {
     font-family: var(--font-body) !important;
     font-size: 13px !important;
     color: var(--text-muted) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-left: auto !important;
 }
 
-#user-tools a {
+#user-tools form {
+    display: inline-flex !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.admin-header-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: var(--surface2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
     color: var(--text) !important;
+    font-family: var(--font-body) !important;
+    font-size: 12px !important;
     font-weight: 500 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    height: auto !important;
+    line-height: normal !important;
+    margin: 0 !important;
 }
 
-#user-tools a:hover {
-    color: var(--red) !important;
+.admin-header-btn:hover {
+    background: var(--red-dim) !important;
+    border-color: var(--red) !important;
+    color: var(--text) !important;
 }
+
+#user-tools .welcome-text {
+    margin-right: 8px !important;
+    color: var(--text-muted) !important;
+}
+
+#user-tools .welcome-text strong {
+    color: var(--text) !important;
+}
+
 
 .breadcrumbs {
     background: #0f0f0f !important;
