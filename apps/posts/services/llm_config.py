@@ -10,8 +10,8 @@ def get_effective_llm_settings() -> tuple[str | None, str]:
     """
     from apps.posts.models import LLMConfig
 
-    base_url = settings.OPENAI_BASE_URL or None
-    model_name = settings.LLM_MODEL
+    base_url = settings.LOCAL_LLM_BASE_URL or None
+    model_name = settings.LOCAL_LLM_MODEL
 
     row = LLMConfig.objects.first()
     if row:

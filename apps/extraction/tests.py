@@ -97,3 +97,60 @@ class ExtractionServiceTest(TestCase):
         self.assertEqual(result["summary"], "This is a recipe.")
         # Missing fields should be auto-recomputed for invalid news as well
         self.assertTrue("title" in result["missing_fields"])
+
+
+class LlmClientFallbackTest(TestCase):
+    from django.test import override_settings
+
+    @override_settings(OPENAI_FALLBACK_MODEL="test-fallback-model")
+    @patch("apps.extraction.client.OpenAI")
+    @patch("apps.extraction.client.get_effective_llm_settings")
+    @patch("apps.extraction.client.get_effective_api_key")
+    def test_call_openai_extractor_falls_back_on_failure(self, mock_api_key, mock_get_llm_settings, mock_openai_class):
+        from unittest.mock import MagicMock
+        from apps.extraction import client
+        mock_get_llm_settings.return_value = ("http://local-llm-url/v1", "local-model")
+        mock_api_key.return_value = "fake-key"
+        
+        # Primary client (local LLM) raises exception
+        mock_local_client = MagicMock()
+        mock_local_client.chat.completions.create.side_effect = Exception("Local LLM failed")
+        
+        # Fallback client (cloud OpenAI) succeeds
+        mock_fallback_client = MagicMock()
+        mock_fallback_client.chat.completions.create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content=(
+                            '{"is_valid_news": true, "title": "Cloud Title", '
+                            '"author": "Cloud Author", "published_at": "2026-06-20T10:00:00Z", '
+                            '"summary": "Cloud summary.", "tags": ["llms"]}'
+                        )
+                    )
+                )
+            ]
+        )
+        
+        # mock_openai_class gets called twice (first for local client, second for cloud client)
+        mock_openai_class.side_effect = [mock_local_client, mock_fallback_client]
+        
+        result = client.call_openai_extractor("Some tech article content")
+        
+        self.assertTrue(result["is_valid_news"])
+        self.assertEqual(result["title"], "Cloud Title")
+        self.assertEqual(result["author"], "Cloud Author")
+        
+        # Assert calls to OpenAI client constructor
+        self.assertEqual(mock_openai_class.call_count, 2)
+        
+        # First constructor call (local LLM)
+        mock_openai_class.assert_any_call(base_url="http://local-llm-url/v1", api_key="fake-key")
+        
+        # Second constructor call (cloud LLM fallback)
+        mock_openai_class.assert_any_call(api_key="fake-key")
+        
+        # Verify fallback call parameters
+        mock_fallback_client.chat.completions.create.assert_called_once()
+        kwargs = mock_fallback_client.chat.completions.create.call_args[1]
+        self.assertEqual(kwargs["model"], "test-fallback-model")

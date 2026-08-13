@@ -78,7 +78,7 @@ class LLMConfig(models.Model):
         default="",
         help_text=(
             "OpenAI-compatible API base URL, e.g. http://localhost:11434/v1 or your ngrok /v1 endpoint. "
-            "Leave blank to use OPENAI_BASE_URL from .env."
+            "Leave blank to use LOCAL_LLM_BASE_URL from .env."
         ),
     )
     model_name = models.CharField(
@@ -87,7 +87,7 @@ class LLMConfig(models.Model):
         default="",
         help_text=(
             "Local or remote model name, e.g. Qwen/Qwen3.5-4B. "
-            "Leave blank to use LLM_MODEL from .env."
+            "Leave blank to use LOCAL_LLM_MODEL from .env."
         ),
     )
 

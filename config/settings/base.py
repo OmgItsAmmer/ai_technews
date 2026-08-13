@@ -152,9 +152,9 @@ CELERY_TASK_TRACK_STARTED = True
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", None)
-LLM_MODEL = os.environ.get("LLM_MODEL", "gpt-4o-mini")
-OPENAI_MODEL = LLM_MODEL  # alias used by apps.extraction.client
+LOCAL_LLM_BASE_URL = os.environ.get("LOCAL_LLM_BASE_URL", None)
+LOCAL_LLM_MODEL = os.environ.get("LOCAL_LLM_MODEL", "Qwen/Qwen3.5-4B")
+OPENAI_FALLBACK_MODEL = os.environ.get("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
 
 FETCHER_DEDUP_REDIS_KEY = "fetcher:seen_urls"
 FETCHER_DEDUP_TTL_SECONDS = 30 * 24 * 60 * 60

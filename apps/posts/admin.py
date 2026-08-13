@@ -65,7 +65,7 @@ class LLMConfigAdmin(admin.ModelAdmin):
                 "fields": ("base_url", "model_name"),
                 "description": (
                     "Configure the local or remote OpenAI-compatible LLM used for article extraction. "
-                    "Values saved here override OPENAI_BASE_URL and LLM_MODEL from .env."
+                    "Values saved here override LOCAL_LLM_BASE_URL and LOCAL_LLM_MODEL from .env."
                 ),
             },
         ),

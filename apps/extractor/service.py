@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from datetime import datetime
 from typing import Any
@@ -11,6 +12,8 @@ from apps.extractor.prompts import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PRO
 from apps.extractor.tags import VALID_TAG_SLUGS
 from apps.fetcher.scraper import extract_article_text
 from apps.posts.services.llm_config import get_effective_api_key, get_effective_llm_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _strip_json_fences(raw: str) -> str:
@@ -55,18 +58,42 @@ def _build_client() -> OpenAI:
 
 def extract_from_text(text: str) -> dict[str, Any]:
     """Send article text to configured LLM and return structured metadata."""
-    _, model_name = get_effective_llm_settings()
+    base_url, model_name = get_effective_llm_settings()
     client = _build_client()
-    response = client.chat.completions.create(
-        model=model_name,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
-            {"role": "user", "content": EXTRACTION_USER_PROMPT.format(text=text)},
-        ],
-        temperature=0.2,
-        max_tokens=400,
-    )
+    try:
+        response = client.chat.completions.create(
+            model=model_name,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                {"role": "user", "content": EXTRACTION_USER_PROMPT.format(text=text)},
+            ],
+            temperature=0.2,
+            max_tokens=400,
+        )
+    except Exception as e:
+        if base_url:
+            from django.conf import settings
+            logger.warning(f"Local/configured LLM failed, falling back to OpenAI {settings.OPENAI_FALLBACK_MODEL}. Error: {e}")
+            try:
+                api_key = get_effective_api_key()
+                cloud_client = OpenAI(api_key=api_key)
+                response = cloud_client.chat.completions.create(
+                    model=settings.OPENAI_FALLBACK_MODEL,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                        {"role": "user", "content": EXTRACTION_USER_PROMPT.format(text=text)},
+                    ],
+                    temperature=0.2,
+                    max_tokens=400,
+                )
+            except Exception as cloud_e:
+                logger.error(f"Fallback OpenAI cloud API call also failed: {cloud_e}")
+                raise cloud_e
+        else:
+            raise e
+
     raw_content = response.choices[0].message.content or "{}"
     data = _parse_json_response(raw_content)
 

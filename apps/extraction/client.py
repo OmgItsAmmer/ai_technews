@@ -38,6 +38,25 @@ def call_openai_extractor(content: str) -> dict:
         raw_response = response.choices[0].message.content.strip()
         return parse_json_response(raw_response)
     except Exception as e:
+        if base_url:
+            logger.warning(f"Local/configured LLM failed, falling back to OpenAI gpt-4o-mini. Error: {e}")
+            try:
+                cloud_client = OpenAI(api_key=api_key)
+                response = cloud_client.chat.completions.create(
+                    model=settings.OPENAI_FALLBACK_MODEL,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": USER_PROMPT_TEMPLATE.format(content=content)}
+                    ],
+                    temperature=0.0,
+                    response_format={"type": "json_object"}
+                )
+                raw_response = response.choices[0].message.content.strip()
+                return parse_json_response(raw_response)
+            except Exception as cloud_e:
+                logger.error(f"Fallback OpenAI cloud API call also failed: {cloud_e}")
+                e = cloud_e  # Report the fallback failure in summary
+
         logger.error(f"OpenAI API call failed: {e}")
         # Return fallback dictionary conforming to the contract
         return {
