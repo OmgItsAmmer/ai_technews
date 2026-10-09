@@ -1,6 +1,8 @@
-# Antix AI service on Fly.io. Deploy from this directory:  fly launch --no-deploy --copy-config ; fly deploy
-# Private app: no public HTTP service. Django reaches it at http://ainews-ai.internal:8100 over Fly's 6PN network.
-# NOTE: not deployed or validated from here -- check with `fly config validate` before the first deploy.
+# Antix AI service on Fly.io. Deploy from this directory:  fly deploy --no-public-ips
+# Private app: no public IPs. Django reaches it over Flycast at http://ainews-ai.flycast
+# (allocate once with:  fly ips allocate-v6 --private -a ainews-ai).
+# Going through Fly's proxy lets the machine sleep when idle and wake on the next request.
+# Validate before the first deploy with:  fly config validate
 app = "ainews-ai"
 primary_region = "iad"
 
@@ -9,32 +11,32 @@ primary_region = "iad"
 [deploy]
   release_command = "antix-ai migrate"
 
-[processes]
-  # "::" so the process listens on IPv6, which .internal DNS resolves to
-  api = "antix-ai serve --host :: --port 8100"
-  worker = "antix-ai worker"
-
 [env]
   AI_ENV = "prod"
   AI_LOG_JSON = "true"
 
-[checks.ready]
-  type = "http"
-  port = 8100
-  path = "/ready"
-  interval = "30s"
-  timeout = "5s"
-  grace_period = "30s"
-  processes = ["api"]
+[processes]
+  # API + arq worker + local Redis share one machine so the whole service can sleep when idle.
+  # "::" so the API listens on IPv6, which Flycast/6PN traffic uses.
+  app = "sh -c 'redis-server --daemonize yes && antix-ai worker & exec antix-ai serve --host :: --port 8100'"
+
+[http_service]
+  internal_port = 8100
+  force_https = false
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/ready"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
 
 [[vm]]
-  processes = ["api"]
-  memory = "512mb"
-  cpu_kind = "shared"
-  cpus = 1
-
-[[vm]]
-  processes = ["worker"]
-  memory = "512mb"
+  processes = ["app"]
+  memory = "1gb"
   cpu_kind = "shared"
   cpus = 1

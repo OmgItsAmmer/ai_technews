@@ -9,10 +9,7 @@ class Migration(migrations.Migration):
         ("posts", "0001_initial"),
     ]
 
-    operations = [
-        migrations.RenameIndex(
-            model_name="post",
-            new_name="posts_post_status_384c95_idx",
-            old_name="posts_post_status_8de7d2_idx",
-        ),
-    ]
+    # 0001_initial already creates the index under its final name, so a fresh database
+    # has nothing to rename. Kept as a no-op so 0003 and existing databases that
+    # recorded this migration as applied stay consistent.
+    operations = []
