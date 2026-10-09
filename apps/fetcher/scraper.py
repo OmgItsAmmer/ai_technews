@@ -14,6 +14,34 @@ DEFAULT_HEADERS = {
 }
 
 
+# Single-segment paths that are site navigation, not articles.
+NON_ARTICLE_SEGMENTS = frozenset({
+    "about", "account", "api", "archive", "archives", "author", "authors", "careers",
+    "category", "categories", "contact", "cookies", "datasets", "docs", "events",
+    "faq", "feed", "forum", "help", "jobs", "login", "logout", "methods", "models",
+    "newsletter", "newsletters", "papers", "people", "pricing", "privacy", "register",
+    "rss", "search", "settings", "signin", "signup", "sitemap", "subscribe", "tag",
+    "tags", "tasks", "terms", "topics", "trending", "latest", "leaderboard",
+    "leaderboards", "sota", "libraries", "conferences", "community", "team",
+})
+
+NON_ARTICLE_EXTENSIONS = (
+    ".css", ".js", ".json", ".xml", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
+    ".ico", ".pdf", ".zip", ".mp4", ".mp3",
+)
+
+
+def _looks_like_article_link(parsed, base) -> bool:
+    """Reject homepage, assets and top-level navigation pages (e.g. /datasets, /pricing)."""
+    path = parsed.path.rstrip("/")
+    if not path or path == base.path.rstrip("/"):
+        return False
+    if path.lower().endswith(NON_ARTICLE_EXTENSIONS):
+        return False
+    segments = [s for s in path.split("/") if s]
+    return not (len(segments) == 1 and segments[0].lower() in NON_ARTICLE_SEGMENTS)
+
+
 def discover_article_links(homepage_url: str, max_links: int | None = None) -> list[str]:
     """Fetch a homepage and return up to 30 candidate article links."""
     limit = max_links or settings.FETCHER_MAX_HOMEPAGE_LINKS
@@ -35,6 +63,8 @@ def discover_article_links(homepage_url: str, max_links: int | None = None) -> l
         if parsed.scheme not in ("http", "https"):
             continue
         if parsed.netloc != base.netloc:
+            continue
+        if not _looks_like_article_link(parsed, base):
             continue
 
         normalized = absolute.split("#")[0].rstrip("/")

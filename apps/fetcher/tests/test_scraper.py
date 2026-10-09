@@ -84,3 +84,17 @@ def test_discover_article_links_raises_on_http_error(mock_get):
     except httpx.HTTPError:
         raised = True
     assert raised
+
+
+@patch("apps.fetcher.scraper.httpx.get")
+def test_discover_article_links_skips_navigation_pages(mock_get):
+    html = (
+        '<a href="/datasets">D</a><a href="/pricing/">P</a><a href="/">Home</a>'
+        '<a href="/static/app.css">css</a><a href="/blog/real-article">A</a>'
+    )
+    mock_response = MagicMock()
+    mock_response.text = f"<html><body>{html}</body></html>"
+    mock_response.raise_for_status = MagicMock()
+    mock_get.return_value = mock_response
+
+    assert discover_article_links("https://example.com/") == ["https://example.com/blog/real-article"]

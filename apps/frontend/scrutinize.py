@@ -13,12 +13,12 @@ class ScrutinizeClient:
         self.admin_key = getattr(
             settings,
             "SCRUTINIZE_ADMIN_API_KEY",
-            "scrutinize_sk_d5e6feae8ca4ff07557f29e8536f20f89b60f73f40270b9e",
+            "",
         )
         self.client_key = getattr(
             settings,
             "SCRUTINIZE_PUBLIC_CLIENT_KEY",
-            "scrutinize_pk_bad456b4ad1c215b093a78e12e33629074ee10f95e7e291b",
+            "",
         )
 
     def _admin_headers(self) -> dict:

@@ -1,0 +1,45 @@
+# Local stack for the AI service: pgvector Postgres + Redis + API + worker.
+#   docker compose up -d db redis && antix-ai migrate     # run the service from your venv, or:
+#   docker compose --profile app up --build
+# The Django tables (posts_post, sources_source) must exist in the same database; for a fully
+# local setup point Django's DATABASE_URL at this db too and run Django migrations.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_PASSWORD: antix
+      POSTGRES_DB: antix
+    ports: ["55432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d antix"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["6381:6379"]
+  migrate:
+    profiles: [app]
+    build: .
+    command: ["antix-ai", "migrate"]
+    env_file: [.env]
+    environment: &env
+      AI_DATABASE_URL: postgresql://postgres:antix@db:5432/antix
+      AI_REDIS_URL: redis://redis:6379/2
+    depends_on: {db: {condition: service_healthy}}
+  api:
+    profiles: [app]
+    build: .
+    env_file: [.env]
+    environment: *env
+    ports: ["8100:8100"]
+    depends_on: {migrate: {condition: service_completed_successfully}, redis: {condition: service_started}}
+  worker:
+    profiles: [app]
+    build: .
+    command: ["antix-ai", "worker"]
+    env_file: [.env]
+    environment: *env
+    depends_on: {migrate: {condition: service_completed_successfully}, redis: {condition: service_started}}
+volumes:
+  pgdata:

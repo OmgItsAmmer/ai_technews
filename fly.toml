@@ -6,6 +6,9 @@ primary_region = "iad"
 [env]
   DJANGO_SETTINGS_MODULE = "config.settings.production"
   REDIS_URL = "redis://127.0.0.1:6379/0"
+  # Ask AI is served by the Antix AI service (separate Fly app "ainews-ai", see ai_service/fly.toml)
+  AI_BACKEND = "antix"
+  AI_SERVICE_URL = "http://ainews-ai.internal:8100"
 
 [http_service]
   internal_port = 8000

@@ -1,0 +1,23 @@
+# Core API dependencies
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.3
+
+# Database & Vectors
+psycopg[binary]>=3.2
+psycopg-pool>=3.2
+pgvector>=0.3
+alembic>=1.13
+sqlalchemy>=2.0
+
+# Queue & Background Workers
+redis>=5.0
+arq>=0.26
+
+# HTTP & LLMs
+httpx>=0.27
+openai>=1.40
+anthropic>=0.34
+tiktoken>=0.7
+numpy>=1.26

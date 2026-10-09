@@ -280,6 +280,52 @@ def api_chat(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_chat_stream(request):
+    """Server-sent events proxy to the Antix AI service (token-by-token answers)."""
+    from django.conf import settings
+    from django.http import StreamingHttpResponse
+
+    from apps.ai.client import AIClient, AIUnavailable
+    from apps.frontend.chat import ai_session_id
+
+    if settings.AI_BACKEND != "antix":
+        return JsonResponse({"error": "streaming requires AI_BACKEND=antix"}, status=409)
+    try:
+        data = json.loads(request.body)
+        message = (data.get("message") or "").strip()
+        if not message:
+            return JsonResponse({"error": "Missing message content"}, status=400)
+        token = data.get("session_token") or data.get("token") or "anon"
+        sid = ai_session_id(token, data.get("page_session_id") or "default")
+        stream = AIClient().ask_stream(message, session_id=sid)
+    except (AIUnavailable, ValueError) as e:
+        return JsonResponse({"error": str(e)}, status=503)
+    resp = StreamingHttpResponse(stream, content_type="text/event-stream")
+    resp["Cache-Control"] = "no-cache"
+    resp["X-Accel-Buffering"] = "no"
+    return resp
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_chat_feedback(request):
+    from apps.ai.client import AIClient, AIUnavailable
+
+    try:
+        data = json.loads(request.body)
+        rating = int(data["rating"])
+        if rating not in (-1, 0, 1):
+            raise ValueError("rating must be -1, 0 or 1")
+        AIClient().feedback(str(data["trace_id"]), rating, (data.get("note") or "")[:1000] or None)
+        return JsonResponse({"ok": True})
+    except (KeyError, ValueError, TypeError) as e:
+        return JsonResponse({"error": f"invalid request: {e}"}, status=400)
+    except AIUnavailable as e:
+        return JsonResponse({"error": str(e)}, status=503)
+
+
 @require_http_methods(["GET"])
 def api_chat_history(request):
     token = request.GET.get("session_token") or request.GET.get("token") or "anon"

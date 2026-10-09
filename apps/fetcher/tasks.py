@@ -1,6 +1,7 @@
 import logging
 
 from celery import shared_task
+from django.conf import settings
 from django.utils import timezone
 
 from apps.extractor.service import extract_from_text
@@ -73,6 +74,17 @@ def _save_post(
         return False
 
     fields = _resolve_post_fields(entry, metadata, prefer_rss=prefer_rss)
+
+    # Scraped (non-RSS) pages can serve the same featured article under many URLs,
+    # which slips past URL dedup. Treat same title or same body within a source as a duplicate.
+    if not prefer_rss:
+        duplicates = Post.objects.filter(source=source)
+        title = (fields["title"] or "").strip()
+        if (title and duplicates.filter(title__iexact=title).exists()) or duplicates.filter(
+            raw_content=body_text
+        ).exists():
+            logger.info("Skipping content duplicate for source=%s url=%s", source.name, entry.link)
+            return False
 
     from django.db import IntegrityError
     try:
@@ -267,6 +279,16 @@ def finalize_fetch_pipeline(fetch_results: list[int], run_id: str) -> dict:
 
     articles_saved = sum(r or 0 for r in (fetch_results or []))
     state = get_fetch_run(run_id) or {}
+    if settings.AI_BACKEND == "antix":
+        # New posts are indexed by the AI service via post_save signals; nothing to upload.
+        update_fetch_run(
+            run_id,
+            sources_done=state.get("sources_total", 0),
+            articles_saved=articles_saved,
+            phase="done",
+            message="Fetch complete. New articles are being indexed by the AI service.",
+        )
+        return {"status": "success", "articles_saved": articles_saved, "backend": "antix"}
     update_fetch_run(
         run_id,
         sources_done=state.get("sources_total", 0),
@@ -339,7 +361,8 @@ def fetch_all_sources(run_id: str | None = None) -> dict[str, int | str]:
     else:
         for source_id in source_ids:
             fetch_source.delay(source_id)
-        sync_scrutinize_task.apply_async(countdown=60)
+        if settings.AI_BACKEND != "antix":
+            sync_scrutinize_task.apply_async(countdown=60)
 
     logger.info("Dispatched fetch_source for %s active sources", len(source_ids))
     payload: dict[str, int | str] = {"dispatched": len(source_ids)}

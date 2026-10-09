@@ -1,0 +1,57 @@
+[project]
+name = "antix-ai"
+version = "0.1.0"
+description = "News-native AI service (grounded Q&A, briefings, stories) for the Antix AI Tech News app."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
+    "pgvector>=0.3",
+    "alembic>=1.13",
+    "sqlalchemy>=2.0",
+    "redis>=5.0",
+    "arq>=0.26",
+    "httpx>=0.27",
+    "openai>=1.40",
+    "anthropic>=0.34",
+    "tiktoken>=0.7",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+antix-ai = "antix_ai.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["antix_ai"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+ignore = ["B008", "E501", "UP047"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+markers = [
+    "integration: requires Postgres+pgvector (AI_TEST_DATABASE_URL)",
+]

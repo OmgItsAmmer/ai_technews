@@ -97,8 +97,8 @@ LLM_MODEL=Qwen/Qwen3.5-4B
 
 # Scrutinize connection (Ask AI + article embedding sync)
 SCRUTINIZE_API_BASE_URL=http://localhost:8000
-SCRUTINIZE_ADMIN_API_KEY=scrutinize_sk_d5e6feae8ca4ff07557f29e8536f20f89b60f73f40270b9e
-SCRUTINIZE_PUBLIC_CLIENT_KEY=scrutinize_pk_bad456b4ad1c215b093a78e12e33629074ee10f95e7e291b
+SCRUTINIZE_ADMIN_API_KEY=your-scrutinize-admin-key-here
+SCRUTINIZE_PUBLIC_CLIENT_KEY=your-scrutinize-public-key-here
 
 CRON_SECRET=<long-random-string>
 DJANGO_SETTINGS_MODULE=config.settings.development

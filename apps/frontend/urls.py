@@ -10,4 +10,6 @@ urlpatterns = [
     path('api/fetch-status/<str:run_id>', views.api_fetch_status, name='api_fetch_status'),
     path('api/chat', views.api_chat, name='api_chat'),
     path('api/chat/history', views.api_chat_history, name='api_chat_history'),
+    path('api/chat/stream', views.api_chat_stream, name='api_chat_stream'),
+    path('api/chat/feedback', views.api_chat_feedback, name='api_chat_feedback'),
 ]

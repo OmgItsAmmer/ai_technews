@@ -637,9 +637,95 @@
                     });
                     bubble.appendChild(citWrap);
                 }
+                if (msg.role === 'assistant' && msg.trace_id) {
+                    const fb = document.createElement('div');
+                    fb.className = 'chat-feedback';
+                    fb.style.cssText = 'margin-top:8px;display:flex;gap:8px;opacity:.7;font-size:14px;';
+                    [['up', 1, 'ti-thumb-up'], ['down', -1, 'ti-thumb-down']].forEach(([name, rating, icon]) => {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.title = rating > 0 ? 'Helpful' : 'Not helpful';
+                        b.style.cssText = 'background:none;border:none;cursor:pointer;color:inherit;padding:2px 4px;';
+                        b.innerHTML = `<i class="ti ${icon}"></i>`;
+                        b.onclick = () => sendChatFeedback(msg.trace_id, rating, fb);
+                        fb.appendChild(b);
+                    });
+                    bubble.appendChild(fb);
+                }
                 container.appendChild(bubble);
             });
             container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendChatFeedback(traceId, rating, el) {
+            try {
+                await fetch('/api/chat/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trace_id: traceId, rating: rating })
+                });
+                el.textContent = rating > 0 ? 'Thanks for the feedback!' : 'Thanks, we will improve this.';
+            } catch (e) { console.error('feedback failed', e); }
+        }
+
+        // Streams the answer token by token. Returns false if the server cannot stream
+        // (legacy backend or service down) so the caller falls back to the JSON endpoint.
+        async function streamChat(message, token, typingBubble) {
+            let res;
+            try {
+                res = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_token: token, page_session_id: pageSessionId, message: message })
+                });
+            } catch (e) { return false; }
+            if (!res.ok || !res.body) return false;
+
+            const container = document.getElementById('chat-messages');
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble ai';
+            let text = '', started = false, finished = false;
+            const render = () => {
+                const shown = text.replace(/\[S(\d+)\]/g, '[#$1]');
+                bubble.innerHTML = (typeof marked !== 'undefined')
+                    ? (marked.parse ? marked.parse(shown) : marked(shown)) : '';
+                if (typeof marked === 'undefined') bubble.textContent = shown;
+                container.scrollTop = container.scrollHeight;
+            };
+            const handle = (ev) => {
+                if (ev.type === 'token') {
+                    if (!started) { started = true; if (typingBubble) typingBubble.remove(); container.appendChild(bubble); }
+                    text += ev.text; render();
+                } else if (ev.type === 'final') {
+                    finished = true;
+                } else if (ev.type === 'error') {
+                    if (typingBubble) typingBubble.remove();
+                    if (!started) container.appendChild(bubble);
+                    bubble.textContent = ev.message || 'Sorry, something went wrong.';
+                    finished = true;
+                }
+            };
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = '';
+            try {
+                for (;;) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, { stream: true });
+                    let idx;
+                    while ((idx = buf.indexOf('\n\n')) !== -1) {
+                        const raw = buf.slice(0, idx); buf = buf.slice(idx + 2);
+                        const line = raw.split('\n').find(l => l.startsWith('data: '));
+                        if (!line || line.slice(6).trim() === '{}') continue;
+                        try { handle(JSON.parse(line.slice(6))); } catch (e) { /* ignore malformed event */ }
+                    }
+                }
+            } catch (e) { console.error('stream interrupted', e); }
+            if (!started && !finished) return false;
+            // Re-render from server state so citations, corrected text and feedback buttons appear
+            await loadChatHistory();
+            return true;
         }
 
         async function sendChatMessage() {
@@ -669,6 +755,7 @@
 
             const token = getOrCreateToken();
             try {
+                if (await streamChat(message, token, typingBubble)) return;
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

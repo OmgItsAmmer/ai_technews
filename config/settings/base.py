@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.extractor",
     "apps.extraction",
     "apps.frontend",
+    "apps.ai",
 ]
 
 MIDDLEWARE = [
@@ -161,10 +162,22 @@ FETCHER_DEDUP_TTL_SECONDS = 30 * 24 * 60 * 60
 FETCHER_MAX_HOMEPAGE_LINKS = 30
 FETCHER_MAX_ARTICLE_TEXT_CHARS = 3000
 
-# Scrutinize API Config
+# Scrutinize API Config (legacy backend; no key defaults -- set them in the environment)
 SCRUTINIZE_API_BASE_URL = os.environ.get("SCRUTINIZE_API_BASE_URL", "http://localhost:8000")
-SCRUTINIZE_ADMIN_API_KEY = os.environ.get("SCRUTINIZE_ADMIN_API_KEY", "scrutinize_sk_d5e6feae8ca4ff07557f29e8536f20f89b60f73f40270b9e")
-SCRUTINIZE_PUBLIC_CLIENT_KEY = os.environ.get("SCRUTINIZE_PUBLIC_CLIENT_KEY", "scrutinize_pk_bad456b4ad1c215b093a78e12e33629074ee10f95e7e291b")
+SCRUTINIZE_ADMIN_API_KEY = os.environ.get("SCRUTINIZE_ADMIN_API_KEY", "")
+SCRUTINIZE_PUBLIC_CLIENT_KEY = os.environ.get("SCRUTINIZE_PUBLIC_CLIENT_KEY", "")
+
+# Antix AI service (ai_service/). AI_BACKEND selects who answers "Ask AI":
+#   scrutinize -> legacy (default, safe)   antix -> new service
+#   shadow     -> serve Scrutinize, run the new service in the background and log both for comparison
+AI_BACKEND = os.environ.get("AI_BACKEND", "scrutinize").lower()
+if AI_BACKEND not in ("scrutinize", "antix", "shadow"):
+    raise ValueError(f"AI_BACKEND must be scrutinize|antix|shadow, got {AI_BACKEND!r}")
+AI_SERVICE_URL = os.environ.get("AI_SERVICE_URL", "http://localhost:8100")
+AI_SERVICE_KEY = os.environ.get("AI_SERVICE_KEY", "")
+AI_SERVICE_TIMEOUT = float(os.environ.get("AI_SERVICE_TIMEOUT", "60"))
+# If the new service errors, answer from Scrutinize instead of showing an error
+AI_FALLBACK_TO_SCRUTINIZE = os.environ.get("AI_FALLBACK_TO_SCRUTINIZE", "false").lower() == "true"
 
 LOGGING = {
     "version": 1,

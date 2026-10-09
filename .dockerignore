@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+# separate deployables / unrelated trees: never part of the Django image
+ai_service
+Scrutinize
+docs
+*.html
+*.tex
